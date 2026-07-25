@@ -1,0 +1,166 @@
+"""Request/response contracts for API v1."""
+
+import uuid
+from datetime import date, datetime
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.ai.schemas import AssignmentRequirements
+from app.models import AssignmentStatus, Decision, MatchStatus, RemotePreference, UserRole
+
+# ---- auth ----
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=10, max_length=128)
+    full_name: str = Field(min_length=1, max_length=200)
+    role: UserRole
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class AppleSignInRequest(BaseModel):
+    identity_token: str
+    full_name: str | None = None
+    role: UserRole = UserRole.FREELANCER
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    is_verified: bool
+    created_at: datetime
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# ---- profiles ----
+
+
+class SkillInput(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    level: int = Field(ge=0, le=10)
+    years: float = Field(default=0, ge=0, le=60)
+
+
+class SpecialistProfileRequest(BaseModel):
+    headline: str = Field(min_length=1, max_length=200)
+    bio: str = ""
+    skills: list[SkillInput] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
+    certifications: list[str] = Field(default_factory=list)
+    years_experience: int = Field(default=0, ge=0, le=60)
+    hourly_rate: float | None = Field(default=None, ge=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    hours_per_week: int = Field(default=40, ge=1, le=80)
+    available_from: date | None = None
+    remote_preference: RemotePreference = RemotePreference.REMOTE
+    country: str = Field(default="NL", min_length=2, max_length=2)
+    city: str = ""
+    travel_distance_km: int = Field(default=0, ge=0)
+    github_url: str | None = None
+    linkedin_url: str | None = None
+    website_url: str | None = None
+
+
+class SpecialistProfileResponse(SpecialistProfileRequest):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    trust_score: float
+    trust_breakdown: dict[str, float]
+
+
+class CompanyProfileRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    industry: str = ""
+    size: str = ""
+    country: str = Field(default="NL", min_length=2, max_length=2)
+    city: str = ""
+    website: str | None = None
+    description: str = ""
+
+
+class CompanyProfileResponse(CompanyProfileRequest):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    is_verified: bool
+
+
+# ---- assignments & matches ----
+
+
+class AssignmentCreateRequest(BaseModel):
+    description: str = Field(min_length=20, max_length=20000)
+
+
+class AssignmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    company_id: uuid.UUID
+    raw_description: str
+    requirements: AssignmentRequirements
+    status: AssignmentStatus
+    created_at: datetime
+
+
+class MatchSpecialistView(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    headline: str
+    skills: list[SkillInput]
+    years_experience: int
+    hourly_rate: float | None
+    currency: str
+    country: str
+    remote_preference: RemotePreference
+    trust_score: float
+
+
+class AssignmentBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    requirements: AssignmentRequirements
+    status: AssignmentStatus
+
+
+class MatchResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    assignment_id: uuid.UUID
+    specialist_id: uuid.UUID
+    score: float
+    breakdown: dict[str, float]
+    company_decision: Decision
+    specialist_decision: Decision
+    status: MatchStatus
+    specialist: MatchSpecialistView
+    assignment: AssignmentBrief
+
+
+class MatchDecisionRequest(BaseModel):
+    decision: Decision = Field(description="accepted or rejected")

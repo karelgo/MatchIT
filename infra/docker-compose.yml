@@ -1,0 +1,57 @@
+name: matchit
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: matchit
+      POSTGRES_PASSWORD: matchit
+      POSTGRES_DB: matchit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U matchit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  api:
+    build: ../backend
+    environment:
+      MATCHIT_DATABASE_URL: postgresql+asyncpg://matchit:matchit@postgres:5432/matchit
+      MATCHIT_REDIS_URL: redis://redis:6379/0
+      MATCHIT_QDRANT_URL: http://qdrant:6333
+      MATCHIT_JWT_SECRET: ${MATCHIT_JWT_SECRET:-local-dev-secret-change-in-production}
+      MATCHIT_LLM_PROVIDER: ${MATCHIT_LLM_PROVIDER:-anthropic}
+      MATCHIT_ANTHROPIC_API_KEY: ${MATCHIT_ANTHROPIC_API_KEY:-}
+      MATCHIT_OPENAI_API_KEY: ${MATCHIT_OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  qdrant_data:

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend — lint & tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check app tests
+      - name: Tests
+        run: pytest -q
+
+  ios:
+    name: iOS — build
+    runs-on: macos-15
+    # Not yet a merge gate: this job needs a macOS verification pass on the
+    # generated project before it graduates to required status.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build
+        run: >
+          xcodebuild build
+          -project MatchIT.xcodeproj
+          -scheme MatchIT
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO

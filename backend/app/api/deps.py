@@ -1,0 +1,87 @@
+"""FastAPI dependencies: settings, DB session, auth, AI services.
+
+Service singletons hang off `app.state` (built in `app.main.create_app`) so tests
+swap them by constructing the app with fakes — no monkeypatching.
+"""
+
+import uuid
+from typing import Annotated
+
+import jwt as pyjwt
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import Settings
+from app.core.security import decode_access_token
+from app.db.session import get_db
+from app.models import COMPANY_ROLES, SPECIALIST_ROLES, CompanyProfile, SpecialistProfile, User
+from app.services.auth import AuthService
+from app.services.intake import IntakeService
+from app.services.matching import MatchingEngine
+
+_bearer = HTTPBearer(auto_error=False)
+
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+
+
+def get_app_settings(request: Request) -> Settings:
+    return request.app.state.settings
+
+
+def get_auth_service(request: Request) -> AuthService:
+    return request.app.state.auth_service
+
+
+def get_intake_service(request: Request) -> IntakeService:
+    return request.app.state.intake_service
+
+
+def get_matching_engine(request: Request) -> MatchingEngine:
+    return request.app.state.matching_engine
+
+
+async def get_current_user(
+    request: Request,
+    db: DbSession,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> User:
+    if credentials is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
+    settings: Settings = request.app.state.settings
+    try:
+        payload = decode_access_token(settings, credentials.credentials)
+    except pyjwt.PyJWTError as error:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token") from error
+    user = await db.get(User, uuid.UUID(payload["sub"]))
+    if user is None or not user.is_active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "account unavailable")
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_current_specialist_profile(user: CurrentUser, db: DbSession) -> SpecialistProfile:
+    if user.role not in SPECIALIST_ROLES:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "specialist role required")
+    profile = await db.scalar(
+        select(SpecialistProfile).where(SpecialistProfile.user_id == user.id)
+    )
+    if profile is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "create your specialist profile first")
+    return profile
+
+
+async def get_current_company_profile(user: CurrentUser, db: DbSession) -> CompanyProfile:
+    if user.role not in COMPANY_ROLES:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "company role required")
+    profile = await db.scalar(select(CompanyProfile).where(CompanyProfile.user_id == user.id))
+    if profile is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "create your company profile first")
+    return profile
+
+
+CurrentSpecialistProfile = Annotated[SpecialistProfile, Depends(get_current_specialist_profile)]
+CurrentCompanyProfile = Annotated[CompanyProfile, Depends(get_current_company_profile)]
