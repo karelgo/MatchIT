@@ -120,14 +120,24 @@ struct AssignmentRequirements: Codable, Sendable, Hashable {
     let country: String?
     let remoteAllowed: Bool
     let durationWeeks: Int?
+    let durationIsEstimated: Bool
     let budget: BudgetRange
+    let budgetIsEstimated: Bool
     let clarifyingQuestions: [String]
+}
+
+struct IntakeMessage: Codable, Sendable, Hashable {
+    let role: String
+    let content: String
+
+    var isCompany: Bool { role == "company" }
 }
 
 struct Assignment: Codable, Identifiable, Sendable {
     let id: UUID
     let rawDescription: String
     let requirements: AssignmentRequirements
+    let intakeHistory: [IntakeMessage]
     let status: String
 }
 

@@ -25,10 +25,12 @@ from app.models import (
 )
 from app.schemas.api import (
     AssignmentCreateRequest,
+    AssignmentRefineRequest,
     AssignmentResponse,
     MatchDecisionRequest,
     MatchResponse,
 )
+from app.services import intake as intake_service
 from app.services.intake import IntakeService
 from app.services.matching import MatchingEngine
 
@@ -50,13 +52,47 @@ async def create_assignment(
     intake: IntakeDep,
 ):
     requirements = await intake.extract(body.description)
+    history = [{"role": intake_service.COMPANY_ROLE, "content": body.description}]
+    _append_concierge_turn(history, requirements)
     assignment = Assignment(
         company_id=company.id,
         raw_description=body.description,
         requirements=requirements.model_dump(mode="json"),
+        intake_history=history,
         status=AssignmentStatus.OPEN,
     )
     db.add(assignment)
+    await db.commit()
+    return assignment
+
+
+def _append_concierge_turn(history: list[dict], requirements: AssignmentRequirements) -> None:
+    if requirements.clarifying_questions:
+        history.append(
+            {
+                "role": intake_service.CONCIERGE_ROLE,
+                "content": "\n".join(requirements.clarifying_questions),
+            }
+        )
+
+
+@router.post("/assignments/{assignment_id}/refine", response_model=AssignmentResponse)
+async def refine_assignment(
+    assignment_id: uuid.UUID,
+    body: AssignmentRefineRequest,
+    company: CurrentCompanyProfile,
+    db: DbSession,
+    intake: IntakeDep,
+):
+    """Feed the company's answer back to the concierge and re-extract."""
+    assignment = await _get_company_assignment(db, company.id, assignment_id)
+    history = list(assignment.intake_history) + [
+        {"role": intake_service.COMPANY_ROLE, "content": body.answer}
+    ]
+    requirements = await intake.refine(history)
+    _append_concierge_turn(history, requirements)
+    assignment.intake_history = history
+    assignment.requirements = requirements.model_dump(mode="json")
     await db.commit()
     return assignment
 

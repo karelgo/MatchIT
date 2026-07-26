@@ -91,24 +91,14 @@ struct ConciergeView: View {
                 .background(Theme.accentSoft, in: .rect(cornerRadius: 12))
             }
 
-            if let max = assignment.requirements.budget.maxHourly {
-                Label(
-                    "Budget up to \(Int(max)) \(assignment.requirements.budget.currency)/hour",
-                    systemImage: "eurosign.circle"
-                )
-                .font(.subheadline)
-            }
+            estimateRows(assignment.requirements)
 
-            if !assignment.requirements.clarifyingQuestions.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("The AI would also like to know:")
-                        .font(.subheadline.weight(.semibold))
-                    ForEach(assignment.requirements.clarifyingQuestions, id: \.self) { question in
-                        Label(question, systemImage: "questionmark.circle")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+            if assignment.requirements.clarifyingQuestions.isEmpty {
+                Label("The concierge has everything it needs", systemImage: "checkmark.seal")
+                    .font(.caption)
+                    .foregroundStyle(Theme.success)
+            } else {
+                conciergeThread(assignment)
             }
 
             Button {
@@ -121,6 +111,64 @@ struct ConciergeView: View {
         }
         .padding()
         .cardStyle()
+    }
+
+    @ViewBuilder
+    private func estimateRows(_ requirements: AssignmentRequirements) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let max = requirements.budget.maxHourly {
+                HStack(spacing: 6) {
+                    Label(
+                        "Budget up to \(Int(max)) \(requirements.budget.currency)/hour",
+                        systemImage: "eurosign.circle"
+                    )
+                    if requirements.budgetIsEstimated { EstimateBadge() }
+                }
+            }
+            if let weeks = requirements.durationWeeks {
+                HStack(spacing: 6) {
+                    Label("Duration about \(weeks) weeks", systemImage: "calendar")
+                    if requirements.durationIsEstimated { EstimateBadge() }
+                }
+            }
+        }
+        .font(.subheadline)
+    }
+
+    private func conciergeThread(_ assignment: Assignment) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("The concierge would like to know:")
+                .font(.subheadline.weight(.semibold))
+            ForEach(assignment.requirements.clarifyingQuestions, id: \.self) { question in
+                Label(question, systemImage: "questionmark.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 8) {
+                TextField("Answer in your own words…", text: $model.answerText, axis: .vertical)
+                    .lineLimit(1 ... 4)
+                    .textFieldStyle(.roundedBorder)
+                Button {
+                    Task { await model.sendAnswer() }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title)
+                        .foregroundStyle(Theme.accent)
+                }
+                .disabled(
+                    model.answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || model.isBusy
+                )
+                .accessibilityLabel("Send answer to the concierge")
+            }
+            if model.isBusy {
+                Label("The concierge is updating your assignment…", systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
     }
 
     private func matchList(_ matches: [Match]) -> some View {
@@ -145,6 +193,18 @@ struct ConciergeView: View {
                 }
             }
         }
+    }
+}
+
+/// Small badge marking a value the AI estimated from market data.
+struct EstimateBadge: View {
+    var body: some View {
+        Text("AI estimate")
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Theme.accentSoft, in: .capsule)
+            .foregroundStyle(Theme.accent)
     }
 }
 

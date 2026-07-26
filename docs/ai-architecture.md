@@ -29,7 +29,14 @@ months”* — into `AssignmentRequirements`:
   concierge conversational rather than a form
 
 The extraction is schema-constrained, validated, and stored on the assignment as
-JSONB. Follow-up answers re-run extraction over the accumulated conversation.
+JSONB. The intake is **multi-turn**: the dialogue is persisted on the assignment
+(`intake_history`), and `POST /assignments/{id}/refine` feeds each company answer
+back through extraction over the full "Company:/Concierge:" transcript, so later
+answers refine or override earlier statements and answered questions are never
+re-asked. When budget or duration are stated nowhere in the conversation, the
+model estimates them from current EU market rates and flags them
+(`budget_is_estimated` / `duration_is_estimated`) — stated values are never
+flagged.
 
 ### 2. Matching engine — shipped in Iteration 1
 

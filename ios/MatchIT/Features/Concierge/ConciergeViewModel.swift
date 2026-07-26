@@ -15,6 +15,7 @@ final class ConciergeViewModel {
 
     var phase: Phase = .describing
     var problemText = ""
+    var answerText = ""
     var companyName = ""
     var companyIndustry = ""
     var isBusy = false
@@ -57,6 +58,19 @@ final class ConciergeViewModel {
         }
     }
 
+    func sendAnswer() async {
+        guard case let .reviewing(assignment) = phase else { return }
+        let answer = answerText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !answer.isEmpty else { return }
+        await run {
+            let updated = try await self.api.refineAssignment(
+                assignmentId: assignment.id, answer: answer
+            )
+            self.answerText = ""
+            self.phase = .reviewing(updated)
+        }
+    }
+
     func findSpecialists() async {
         guard case let .reviewing(assignment) = phase else { return }
         await run {
@@ -76,6 +90,7 @@ final class ConciergeViewModel {
 
     func startOver() {
         problemText = ""
+        answerText = ""
         phase = .describing
     }
 

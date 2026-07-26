@@ -23,8 +23,11 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   (swipe), profile — Swift 6, MVVM/@Observable, no third-party dependencies.
 
 ## Epic 2 — Conversational concierge & realtime chat
-- Multi-turn concierge: answers to clarifying questions refine the assignment;
-  budget & duration estimation; team composition proposals.
+- ✅ Multi-turn concierge (Iteration 2): answers to clarifying questions are fed
+  back into extraction over the full transcript (`POST /assignments/{id}/refine`),
+  the dialogue is persisted per assignment, and missing budget/duration are
+  AI-estimated from EU market rates and flagged as estimates.
+- Team composition proposals from the concierge.
 - Real-time chat on mutual match (WebSocket + Redis pub/sub), AI assistant in
   thread, code snippets & diagram attachments.
 - Push notifications (APNs): new matches, messages, availability requests.
@@ -67,8 +70,8 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 2, story 1 — multi-turn concierge refinement.** The intake service already
-returns `clarifying_questions`; the next feature threads company answers back into
-extraction so the assignment converges conversationally. It is the highest-leverage
-step toward the "AI writes the complete assignment" promise and unblocks budget/team
-estimation.
+**Epic 2, story 2 — real-time chat on mutual match.** Mutual matches currently
+dead-end at "chat unlocked"; a conversations/messages model, WebSocket endpoint
+with Redis pub/sub fan-out, and the iOS chat surface complete the core loop's
+hand-off from matching to collaboration, and lay the transport groundwork for the
+AI interview agent (Epic 5).

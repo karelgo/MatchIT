@@ -37,6 +37,8 @@ class Assignment(TimestampedBase):
     )
     raw_description: Mapped[str] = mapped_column(Text)
     requirements: Mapped[dict] = mapped_column(JsonVariant, default=dict)
+    # [{"role": "company"|"concierge", "content": str}] — the intake dialogue
+    intake_history: Mapped[list[dict]] = mapped_column(JsonVariant, default=list)
     status: Mapped[AssignmentStatus] = mapped_column(
         Enum(AssignmentStatus, native_enum=False, length=15), default=AssignmentStatus.DRAFT
     )

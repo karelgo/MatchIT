@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -114,6 +115,15 @@ class AssignmentCreateRequest(BaseModel):
     description: str = Field(min_length=20, max_length=20000)
 
 
+class AssignmentRefineRequest(BaseModel):
+    answer: str = Field(min_length=1, max_length=8000)
+
+
+class IntakeMessage(BaseModel):
+    role: Literal["company", "concierge"]
+    content: str
+
+
 class AssignmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -121,6 +131,7 @@ class AssignmentResponse(BaseModel):
     company_id: uuid.UUID
     raw_description: str
     requirements: AssignmentRequirements
+    intake_history: list[IntakeMessage]
     status: AssignmentStatus
     created_at: datetime
 

@@ -105,6 +105,13 @@ actor APIClient {
         try await post("assignments", body: ["description": description])
     }
 
+    func refineAssignment(assignmentId: UUID, answer: String) async throws -> Assignment {
+        try await post(
+            "assignments/\(assignmentId.uuidString.lowercased())/refine",
+            body: ["answer": answer]
+        )
+    }
+
     func generateMatches(assignmentId: UUID) async throws -> [Match] {
         try await post("assignments/\(assignmentId.uuidString.lowercased())/matches", body: Empty())
     }

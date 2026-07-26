@@ -34,7 +34,13 @@ class AssignmentRequirements(BaseModel):
     remote_allowed: bool = True
     start_date: date | None = None
     duration_weeks: int | None = Field(default=None, ge=1)
+    duration_is_estimated: bool = Field(
+        default=False, description="True when duration_weeks is an AI market estimate"
+    )
     budget: BudgetRange = Field(default_factory=BudgetRange)
+    budget_is_estimated: bool = Field(
+        default=False, description="True when the budget is an AI market estimate"
+    )
     certifications: list[str] = Field(default_factory=list)
     industry: str | None = None
     clarifying_questions: list[str] = Field(
