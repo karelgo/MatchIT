@@ -69,8 +69,15 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   the assignment plus the agreed commercial terms — the model never invents a rate
   or date, and anything contentious lands in `open_points` for a lawyer. Both
   parties sign in-app; the second signature activates the contract.
-- Stripe Connect: escrow, hourly & fixed-price, invoicing with VAT, subscriptions
-  & commission.
+- ✅ Escrow-backed invoicing (Iteration 10): the specialist bills a period, the
+  company funds it into escrow, and release pays out the net fee less the
+  platform commission. Money is Decimal end to end, never float.
+- ✅ EU VAT: domestic supplies carry the local standard rate; intra-EU B2B is
+  reverse-charged (Art. 196); outside the EU is out of scope. Commission is
+  taken on the net fee, never on VAT.
+- The Stripe Connect adapter itself (the provider is behind a protocol and the
+  fake is complete; `StripePaymentProvider` raises until credentials exist),
+  fixed-price milestones, subscriptions, dunning.
 
 ## Epic 7 — Admin portal & analytics
 - ✅ Admin API (Iteration 9): funnel and conversion metrics, match/interview/trust
@@ -103,8 +110,7 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 6, story 2 — payments.** Contracts activate but no money moves: no
-escrow, no invoicing, no VAT, no commission. It is the last thing standing
-between the platform and its own revenue, and the contract's commercial terms
-(rate, hours, dates) are already modelled as real columns precisely so invoicing
-can query them.
+**Epic 10 — scale-out, and Epic 2's push notifications.** The product loop is
+now complete end to end. What is missing is operational: Terraform/Kubernetes
+manifests, matching workers behind a queue, and APNs so a specialist learns
+about a match without opening the app.

@@ -357,6 +357,36 @@ class ContractResponse(BaseModel):
     created_at: UTCDatetime
 
 
+# ---- invoices ----
+
+
+class InvoiceCreateRequest(BaseModel):
+    period_start: date
+    period_end: date
+    hours: float = Field(gt=0, le=1000)
+
+
+class InvoiceResponse(BaseModel):
+    id: uuid.UUID
+    contract_id: uuid.UUID
+    status: str
+    period_start: date
+    period_end: date
+    hours: float
+    hourly_rate: float
+    currency: str
+    subtotal: float
+    vat_rate_percent: float
+    vat_amount: float
+    vat_treatment: str
+    vat_note: str
+    total: float
+    commission_rate_percent: float
+    commission_amount: float
+    specialist_payout: float
+    created_at: UTCDatetime
+
+
 # ---- admin ----
 
 

@@ -15,6 +15,7 @@ from app.api.v1 import (
     chat,
     contracts,
     interviews,
+    invoices,
     privacy,
     profiles,
 )
@@ -31,6 +32,7 @@ from app.services.github import GitHubClient, build_github_client
 from app.services.intake import IntakeService
 from app.services.interview import InterviewService
 from app.services.matching import MatchingEngine
+from app.services.payments import PaymentProvider, build_payment_provider
 from app.services.privacy import PrivacyService
 from app.services.pubsub import PubSub, build_pubsub
 from app.services.ratelimit import RateLimiter, build_rate_limiter
@@ -55,6 +57,7 @@ def create_app(
     rate_limiter: RateLimiter | None = None,
     github_client: GitHubClient | None = None,
     usage_counter: UsageCounter | None = None,
+    payment_provider: PaymentProvider | None = None,
     sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
@@ -87,6 +90,7 @@ def create_app(
         metered("enrichment"), github_client or build_github_client()
     )
     app.state.analytics_service = AnalyticsService()
+    app.state.payment_provider = payment_provider or build_payment_provider(settings)
     matching_engine = MatchingEngine(embeddings, index)
     app.state.matching_engine = matching_engine
     app.state.team_builder = TeamBuilderService(metered("team_builder"), matching_engine)
@@ -107,6 +111,7 @@ def create_app(
     app.include_router(interviews.router, prefix=api_prefix)
     app.include_router(contracts.router, prefix=api_prefix)
     app.include_router(privacy.router, prefix=api_prefix)
+    app.include_router(invoices.router, prefix=api_prefix)
     app.include_router(admin.router, prefix=api_prefix)
 
     @app.get("/health", tags=["ops"])

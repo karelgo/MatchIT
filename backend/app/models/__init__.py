@@ -3,6 +3,7 @@ from app.models.audit import AuditAction, AuditLog
 from app.models.chat import Conversation, Message
 from app.models.contract import Contract, ContractStatus
 from app.models.interview import Interview, InterviewStatus
+from app.models.invoice import Invoice, InvoiceStatus
 from app.models.profiles import CompanyProfile, RemotePreference, SpecialistProfile
 from app.models.user import (
     COMPANY_ROLES,
@@ -25,6 +26,8 @@ __all__ = [
     "Decision",
     "Interview",
     "InterviewStatus",
+    "Invoice",
+    "InvoiceStatus",
     "Match",
     "Message",
     "MatchStatus",

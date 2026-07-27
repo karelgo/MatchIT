@@ -90,3 +90,5 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
    overwritten by a weaker one.
 9. **Admin & analytics** — funnel, conversion, quality signals, time-to-contract,
    per-feature AI usage, user suspension and audit search.
+10. **Payments** — escrow-backed invoicing with EU VAT (domestic, reverse-charge,
+    out-of-scope) and platform commission, in exact decimal arithmetic.
