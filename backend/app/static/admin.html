@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MatchIT Admin</title>
+  <style>
+    :root {
+      --accent: #4A54F1; --accent-soft: rgba(74, 84, 241, 0.10);
+      --ink: #16181D; --ink-soft: #5A5F6B;
+      --surface: #FFFFFF; --surface-alt: #F5F6F9;
+      --success: #29A86E; --danger: #DE4252; --warn: #B7791F;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #F2F3F7; --ink-soft: #A3A8B5;
+        --surface: #101216; --surface-alt: #191C22;
+        --accent-soft: rgba(112, 122, 255, 0.16);
+      }
+    }
+    * { margin: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--surface); color: var(--ink); line-height: 1.5;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 60px; }
+    header {
+      display: flex; align-items: center; gap: 20px; padding: 18px 0;
+      border-bottom: 1px solid var(--accent-soft); margin-bottom: 24px;
+    }
+    .logo { font-weight: 800; font-size: 1.15rem; }
+    .logo span { color: var(--accent); }
+    nav { display: flex; gap: 6px; flex: 1; }
+    nav button {
+      border: 0; background: none; color: var(--ink-soft); font: inherit;
+      padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
+    }
+    nav button.active { background: var(--accent-soft); color: var(--accent); }
+    .card { background: var(--surface-alt); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    h2 { font-size: 1.05rem; margin-bottom: 14px; letter-spacing: -0.01em; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--accent-soft); }
+    th { color: var(--ink-soft); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .bar-row { display: grid; grid-template-columns: 160px 1fr 60px; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.88rem; }
+    .bar-track { background: var(--accent-soft); border-radius: 999px; height: 10px; overflow: hidden; }
+    .bar-fill { background: var(--accent); height: 100%; border-radius: 999px; }
+    .chip {
+      display: inline-block; background: var(--accent-soft); color: var(--accent);
+      border-radius: 999px; padding: 2px 10px; font-size: 0.78rem; font-weight: 700; margin: 2px;
+    }
+    .stat { font-size: 1.6rem; font-weight: 800; }
+    .muted { color: var(--ink-soft); font-size: 0.82rem; }
+    .badge { border-radius: 999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; }
+    .badge.active { background: rgba(41,168,110,.15); color: var(--success); }
+    .badge.suspended { background: rgba(222,66,82,.15); color: var(--danger); }
+    button.action {
+      border: 0; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 0.8rem;
+      font-weight: 600; cursor: pointer; background: var(--accent-soft); color: var(--accent);
+    }
+    button.action.danger { background: rgba(222,66,82,.12); color: var(--danger); }
+    input, select {
+      font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--accent-soft);
+      background: var(--surface); color: var(--ink);
+    }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .error { color: var(--danger); font-size: 0.85rem; margin-top: 10px; min-height: 1.2em; }
+    #login-view { max-width: 360px; margin: 12vh auto 0; }
+    #login-view form { display: flex; flex-direction: column; gap: 10px; }
+    #login-view button[type=submit] {
+      background: var(--accent); color: #fff; border: 0; border-radius: 12px;
+      padding: 12px; font: inherit; font-weight: 700; cursor: pointer;
+    }
+    .notice { background: rgba(183,121,31,.12); color: var(--warn); border-radius: 12px; padding: 12px 16px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="login-view">
+      <header><div class="logo">Match<span>IT</span> Admin</div></header>
+      <div class="card">
+        <h2>Sign in</h2>
+        <form id="login-form">
+          <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+          <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+          <button id="login-button" type="submit">Sign in</button>
+        </form>
+        <div class="error" id="login-error"></div>
+      </div>
+    </div>
+
+    <div id="app-view" hidden>
+      <header>
+        <div class="logo">Match<span>IT</span> Admin</div>
+        <nav>
+          <button id="nav-metrics" class="active">Metrics</button>
+          <button id="nav-users">Users</button>
+          <button id="nav-audit">Audit</button>
+        </nav>
+        <button class="action" id="logout-button">Sign out</button>
+      </header>
+
+      <div id="not-admin" class="notice" hidden>
+        This account is signed in but is not an admin, so there is nothing to show here.
+      </div>
+
+      <section id="view-metrics">
+        <div class="grid">
+          <div class="card">
+            <h2>Funnel</h2>
+            <div id="funnel"></div>
+          </div>
+          <div class="card">
+            <h2>Conversion</h2>
+            <div id="conversion"></div>
+            <h2 style="margin-top:18px">Time to contract</h2>
+            <div class="stat" id="time-to-contract">—</div>
+            <div class="muted">mean hours, assignment → active contract</div>
+          </div>
+          <div class="card">
+            <h2>Quality</h2>
+            <div id="quality"></div>
+            <h2 style="margin-top:18px">Users by role</h2>
+            <div id="roles"></div>
+          </div>
+          <div class="card">
+            <h2>AI calls by feature</h2>
+            <table><tbody id="ai-usage"></tbody></table>
+            <div class="muted" style="margin-top:8px">Unit economics start here: every model call is attributed.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-users" hidden>
+        <div class="card">
+          <div class="toolbar">
+            <select id="user-role-filter">
+              <option value="">All roles</option>
+              <option>freelancer</option><option>employee</option><option>consultancy</option>
+              <option>recruiter</option><option>hiring_manager</option><option>admin</option>
+            </select>
+            <select id="user-active-filter">
+              <option value="">Active & suspended</option>
+              <option value="true">Active only</option>
+              <option value="false">Suspended only</option>
+            </select>
+            <button class="action" id="users-reload">Reload</button>
+            <span class="muted" id="users-count"></span>
+          </div>
+          <table>
+            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <tbody id="users-body"></tbody>
+          </table>
+          <div class="error" id="users-error"></div>
+        </div>
+      </section>
+
+      <section id="view-audit" hidden>
+        <div class="card">
+          <div class="toolbar">
+            <select id="audit-action-filter">
+              <option value="">All actions</option>
+              <option>user_registered</option><option>login_succeeded</option><option>login_failed</option>
+              <option>contract_signed</option><option>data_exported</option><option>account_deleted</option>
+              <option>user_suspended</option><option>user_reinstated</option>
+            </select>
+            <button class="action" id="audit-reload">Reload</button>
+            <span class="muted" id="audit-count"></span>
+          </div>
+          <table>
+            <thead><tr><th>When (UTC)</th><th>Action</th><th>Actor</th><th>Target</th><th>IP</th><th>Context</th></tr></thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+          <div class="error" id="audit-error"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+"use strict";
+const API = "/api/v1";
+const $ = (id) => document.getElementById(id);
+let tokens = JSON.parse(sessionStorage.getItem("matchit-admin-tokens") || "null");
+
+// All data lands in the DOM via textContent, never innerHTML: the audit log
+// contains attacker-supplied strings (the email typed into a failed login).
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.className = value;
+    else node.setAttribute(key, value);
+  }
+  for (const child of children) {
+    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+function saveTokens(next) {
+  tokens = next;
+  if (next) sessionStorage.setItem("matchit-admin-tokens", JSON.stringify(next));
+  else sessionStorage.removeItem("matchit-admin-tokens");
+}
+
+async function refreshSession() {
+  if (!tokens) return false;
+  const response = await fetch(`${API}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: tokens.refresh_token }),
+  });
+  if (!response.ok) return false;
+  saveTokens(await response.json());
+  return true;
+}
+
+async function api(path, options = {}, retried = false) {
+  const response = await fetch(API + path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(tokens ? { Authorization: `Bearer ${tokens.access_token}` } : {}),
+    },
+  });
+  if (response.status === 401 && tokens && !retried) {
+    if (await refreshSession()) return api(path, options, true);
+    logout();
+    throw new Error("Session expired — sign in again.");
+  }
+  if (!response.ok) {
+    let detail = `Request failed (${response.status})`;
+    try { detail = (await response.json()).detail || detail; } catch { /* keep default */ }
+    const error = new Error(detail);
+    error.status = response.status;
+    throw error;
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+function logout() {
+  saveTokens(null);
+  $("app-view").hidden = true;
+  $("login-view").hidden = false;
+}
+
+function showApp() {
+  $("login-view").hidden = true;
+  $("app-view").hidden = false;
+  switchView("metrics");
+}
+
+const views = ["metrics", "users", "audit"];
+function switchView(name) {
+  for (const view of views) {
+    $(`view-${view}`).hidden = view !== name;
+    $(`nav-${view}`).classList.toggle("active", view === name);
+  }
+  if (name === "metrics") loadMetrics();
+  if (name === "users") loadUsers();
+  if (name === "audit") loadAudit();
+}
+
+// ---- metrics ----
+
+const FUNNEL_LABELS = {
+  specialists: "Specialists", companies: "Companies", assignments: "Assignments",
+  matches_suggested: "Matches suggested", matches_mutual: "Mutual matches",
+  interviews_completed: "Interviews done", contracts_active: "Active contracts",
+};
+
+async function loadMetrics() {
+  let data;
+  try {
+    data = await api("/admin/metrics");
+    $("not-admin").hidden = true;
+  } catch (error) {
+    if (error.status === 404) { $("not-admin").hidden = false; return; }
+    throw error;
+  }
+
+  const funnel = $("funnel");
+  funnel.replaceChildren();
+  const max = Math.max(1, ...Object.values(data.funnel));
+  for (const [key, label] of Object.entries(FUNNEL_LABELS)) {
+    const value = data.funnel[key] ?? 0;
+    funnel.append(el("div", { class: "bar-row" },
+      el("span", {}, label),
+      el("div", { class: "bar-track" },
+        el("div", { class: "bar-fill", style: `width:${(100 * value) / max}%` })),
+      el("b", {}, value),
+    ));
+  }
+
+  const conversion = $("conversion");
+  conversion.replaceChildren();
+  for (const [key, rate] of Object.entries(data.conversion)) {
+    conversion.append(el("div", { class: "bar-row" },
+      el("span", {}, key.replaceAll("_", " ")),
+      el("div", {}),
+      el("b", {}, `${(rate * 100).toFixed(1)}%`),
+    ));
+  }
+
+  $("time-to-contract").textContent =
+    data.mean_time_to_contract_hours == null ? "—" : `${data.mean_time_to_contract_hours} h`;
+
+  const quality = $("quality");
+  quality.replaceChildren();
+  for (const [key, value] of Object.entries(data.quality)) {
+    quality.append(el("div", { class: "bar-row" },
+      el("span", {}, key.replaceAll("_", " ")), el("div", {}), el("b", {}, value),
+    ));
+  }
+
+  const roles = $("roles");
+  roles.replaceChildren();
+  for (const [role, count] of Object.entries(data.users_by_role)) {
+    roles.append(el("span", { class: "chip" }, `${role}: ${count}`));
+  }
+
+  const usage = $("ai-usage");
+  usage.replaceChildren();
+  const entries = Object.entries(data.ai_calls_by_feature).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) usage.append(el("tr", {}, el("td", { class: "muted" }, "No AI calls yet")));
+  for (const [feature, count] of entries) {
+    usage.append(el("tr", {}, el("td", {}, feature), el("td", {}, el("b", {}, count))));
+  }
+}
+
+// ---- users ----
+
+async function loadUsers() {
+  $("users-error").textContent = "";
+  const params = new URLSearchParams({ limit: "100" });
+  if ($("user-role-filter").value) params.set("role", $("user-role-filter").value);
+  if ($("user-active-filter").value) params.set("is_active", $("user-active-filter").value);
+  let users;
+  try {
+    users = await api(`/admin/users?${params}`);
+  } catch (error) {
+    $("users-error").textContent = error.message;
+    return;
+  }
+  $("users-count").textContent = `${users.length} shown`;
+  const body = $("users-body");
+  body.replaceChildren();
+  for (const user of users) {
+    const button = el("button",
+      { class: user.is_active ? "action danger" : "action" },
+      user.is_active ? "Suspend" : "Reinstate");
+    button.addEventListener("click", async () => {
+      const verb = user.is_active ? "suspend" : "reinstate";
+      if (user.is_active && !confirm(`Suspend ${user.email}? They are locked out immediately.`)) return;
+      try {
+        await api(`/admin/users/${user.id}/${verb}`, { method: "POST" });
+        loadUsers();
+      } catch (error) { $("users-error").textContent = error.message; }
+    });
+    body.append(el("tr", {},
+      el("td", {}, user.email),
+      el("td", {}, user.full_name),
+      el("td", {}, user.role),
+      el("td", {}, el("span",
+        { class: `badge ${user.is_active ? "active" : "suspended"}` },
+        user.is_active ? "active" : "suspended")),
+      el("td", { class: "muted" }, user.created_at.slice(0, 10)),
+      el("td", {}, button),
+    ));
+  }
+}
+
+// ---- audit ----
+
+async function loadAudit() {
+  $("audit-error").textContent = "";
+  const params = new URLSearchParams({ limit: "200" });
+  if ($("audit-action-filter").value) params.set("action", $("audit-action-filter").value);
+  let entries;
+  try {
+    entries = await api(`/admin/audit?${params}`);
+  } catch (error) {
+    $("audit-error").textContent = error.message;
+    return;
+  }
+  $("audit-count").textContent = `${entries.length} shown`;
+  const body = $("audit-body");
+  body.replaceChildren();
+  for (const entry of entries) {
+    body.append(el("tr", {},
+      el("td", { class: "muted" }, entry.created_at.replace("T", " ").slice(0, 19)),
+      el("td", {}, el("span", { class: "chip" }, entry.action)),
+      el("td", { class: "muted" }, entry.actor_user_id ? entry.actor_user_id.slice(0, 8) : "—"),
+      el("td", { class: "muted" },
+        entry.target_type ? `${entry.target_type} ${entry.target_id?.slice(0, 8) ?? ""}` : "—"),
+      el("td", { class: "muted" }, entry.client_ip ?? "—"),
+      el("td", { class: "muted" },
+        Object.keys(entry.context).length ? JSON.stringify(entry.context) : "—"),
+    ));
+  }
+}
+
+// ---- wiring ----
+
+$("login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  $("login-error").textContent = "";
+  try {
+    const response = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("email").value, password: $("password").value }),
+    });
+    if (!response.ok) {
+      const detail = (await response.json().catch(() => ({}))).detail;
+      throw new Error(detail || "Sign-in failed.");
+    }
+    saveTokens(await response.json());
+    showApp();
+  } catch (error) {
+    $("login-error").textContent = error.message;
+  }
+});
+$("logout-button").addEventListener("click", logout);
+for (const view of views) $(`nav-${view}`).addEventListener("click", () => switchView(view));
+$("users-reload").addEventListener("click", loadUsers);
+$("user-role-filter").addEventListener("change", loadUsers);
+$("user-active-filter").addEventListener("change", loadUsers);
+$("audit-reload").addEventListener("click", loadAudit);
+$("audit-action-filter").addEventListener("change", loadAudit);
+
+if (tokens) showApp();
+</script>
+</body>
+</html>

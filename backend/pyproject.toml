@@ -36,10 +36,14 @@ dev = [
     "aiosqlite>=0.20",
     "ruff>=0.6",
     "reportlab>=4.0",
+    "playwright>=1.45",
 ]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["static/*.html"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

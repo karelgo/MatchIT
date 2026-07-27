@@ -60,9 +60,10 @@ Point the app at a running backend via the `API_BASE_URL` setting in
 
 ## What is verified, and what is not
 
-The backend is covered by **145 offline tests** (SQLite plus deterministic AI
-fakes — no API keys, no network). Two of those tests guard risks the rest of the
-suite structurally cannot see:
+The backend is covered by **147 tests** (SQLite plus deterministic AI
+fakes — no API keys, no external network), including a browser end-to-end test
+that drives the admin portal with real Chromium. Two further tests guard risks
+the rest of the suite structurally cannot see:
 
 - `test_migrations.py` compares the Postgres DDL that Alembic produces against
   the DDL the models produce, column by column. The suite builds its schema with
@@ -88,7 +89,7 @@ call sites and fakes are complete.
 
 ## Status
 
-Thirteen iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
+Fourteen iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
 
 1. **Foundation** — auth (JWT + Apple), profiles, AI assignment intake, explainable
    matching engine, trust score, vector search, infrastructure and CI.
@@ -122,3 +123,5 @@ Thirteen iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what'
 13. **Delight (Epic 9)** — home-screen widget, interview Live Activity with
     Dynamic Island, voice-first concierge dictation, AI-generated CVs from the
     evidence graph, and App Intents for Siri.
+14. **Admin portal UI** — served by the API at `/admin-portal`, no dependencies,
+    XSS-safe rendering, verified end to end in a real browser.

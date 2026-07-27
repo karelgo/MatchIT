@@ -92,8 +92,13 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - ✅ User management: suspend/reinstate, both audited; a suspended account is
   locked out immediately on its already-issued token.
 - ✅ Audit search by action and actor.
-- The portal UI itself (a thin web client over these endpoints), disputes and
-  fraud queues, revenue/LTV/CAC once payments land.
+- ✅ Portal UI (Iteration 14): a single-file vanilla-JS client served by the
+  API itself at `/admin-portal` — same origin, so no CORS surface to widen, and
+  it ships inside the same image. Login, funnel and AI-usage dashboards, user
+  suspension, audit search. All data reaches the DOM via `textContent`, never
+  `innerHTML`: the audit log contains attacker-supplied strings (the email
+  typed into a failed login). Verified end to end with real Chromium.
+- Disputes and fraud queues, revenue/LTV/CAC once payments carry real money.
 
 ## Epic 8 — Trust & safety, compliance
 - ✅ Rate limiting (Iteration 6): fixed-window, Redis-backed so the budget is
@@ -137,10 +142,8 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Close the two adapters that are stubbed.** `StripePaymentProvider` and
-`APNsSender` both raise rather than pretend: the protocols, the call sites and
-the tests around them are complete, but neither has been wired to a real
-credential. That needs accounts, not architecture. After that: a macOS
-verification pass on the iOS project (now two targets: app + widget extension)
-so the CI job can become a merge gate. The roadmap's remaining items are
-adapters and extensions of shipped systems, not new systems.
+**Everything left needs the outside world.** `StripePaymentProvider` and
+`APNsSender` need real credentials; the iOS project needs one macOS
+verification pass (two targets now: app + widget extension) to make its CI job
+a merge gate; the legal drafts need counsel; the pitch needs sourced market
+figures. Every purely-code item in the original brief has shipped.

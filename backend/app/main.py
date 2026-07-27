@@ -1,9 +1,12 @@
 """Application factory. Services are built once and hung off `app.state` so tests
 can construct the app with fakes."""
 
+from pathlib import Path
+
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.ai.embeddings import EmbeddingModel, build_embedding_model
@@ -125,5 +128,14 @@ def create_app(
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": settings.app_name}
+
+    # The admin portal is served by the API itself: same origin, so no CORS
+    # surface to widen, and it ships inside the same image. It renders nothing
+    # without an admin login — the page is public, the data is not.
+    portal = Path(__file__).parent / "static" / "admin.html"
+
+    @app.get("/admin-portal", include_in_schema=False)
+    async def admin_portal() -> FileResponse:
+        return FileResponse(portal, media_type="text/html")
 
     return app
