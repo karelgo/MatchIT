@@ -13,9 +13,6 @@ struct ConciergeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    if let message = model.errorMessage {
-                        ErrorBanner(message: message)
-                    }
                     switch model.phase {
                     case .needsCompanyProfile: companyForm
                     case .describing: describeCard
@@ -25,9 +22,37 @@ struct ConciergeView: View {
                 }
                 .padding(Theme.screenPadding)
             }
+            // The floating tab bar overlaps the last control in a scroll view otherwise.
+            .contentMargins(.bottom, 72, for: .scrollContent)
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Concierge")
             .task { await model.bootstrap() }
+        }
+    }
+
+    /// Failures are shown beside the action that failed. At the top of a long scroll view
+    /// they render off-screen, so a failed request looks like nothing happening at all.
+    @ViewBuilder
+    private var errorBanner: some View {
+        if let message = model.errorMessage {
+            ErrorBanner(
+                message: message,
+                onRetry: model.canRetry ? { Task { await model.retryLastFailure() } } : nil,
+                onDismiss: { model.dismissError() }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var activityNote: some View {
+        if let activity = model.activity {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text(activity.message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -37,6 +62,8 @@ struct ConciergeView: View {
                 .font(.system(.title3, design: .rounded, weight: .semibold))
             TextField("Company name", text: $model.companyName)
             TextField("Industry (optional)", text: $model.companyIndustry)
+            errorBanner
+            activityNote
             Button("Continue") { Task { await model.saveCompanyProfile() } }
                 .buttonStyle(.primary)
                 .disabled(model.isBusy)
@@ -57,9 +84,11 @@ struct ConciergeView: View {
                 TextEditor(text: $model.problemText)
                     .frame(minHeight: 160)
                     .padding(8)
-                    .background(
-                        Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12)
-                    )
+                    .background(Theme.nestedSurface, in: .rect(cornerRadius: 12))
+                    // Autocorrect rewrites technical English on a non-English keyboard —
+                    // "observability" became "observatiepost" — and the AI then extracts
+                    // requirements from corrupted input.
+                    .autocorrectionDisabled()
                     .accessibilityLabel("Problem description")
                 Button {
                     model.toggleDictation()
@@ -85,19 +114,53 @@ struct ConciergeView: View {
             if let speechError = model.transcriber.errorMessage {
                 Text(speechError).font(.caption).foregroundStyle(Theme.danger)
             }
-            Text("Example: “We need two Microsoft Fabric architects to migrate our data warehouse within six months.”")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+
+            // Replaces the static example line: same Fabric example, but tappable, and
+            // only offered while there is nothing to lose by filling the field.
+            if model.problemText.isEmpty {
+                examplePrompts
+            }
+            if let hint = model.descriptionHint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            errorBanner
+            activityNote
             Button {
                 Task { await model.submitProblem() }
             } label: {
-                if model.isBusy { ProgressView().tint(.white) } else { Text("Let AI write the assignment") }
+                Label("Let AI write the assignment", systemImage: "sparkles")
+                    .labelStyle(.titleOnly)
             }
             .buttonStyle(.primary)
             .disabled(!model.canSubmitDescription || model.isBusy)
         }
         .padding()
         .cardStyle()
+    }
+
+    private var examplePrompts: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Or start from an example")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            ForEach(ConciergeViewModel.examplePrompts, id: \.self) { prompt in
+                Button {
+                    model.use(examplePrompt: prompt)
+                } label: {
+                    Text(prompt)
+                        .font(.caption)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(Theme.accentSoft, in: .rect(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Fills the description with this example")
+            }
+        }
     }
 
     private func reviewCard(_ assignment: Assignment) -> some View {
@@ -111,9 +174,9 @@ struct ConciergeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("\(role.count)× \(role.title) · \(role.seniority.capitalized)")
                         .font(.headline)
-                    ChipFlow(items: role.mustHaveSkills.map(\.capitalized))
+                    ChipFlow(items: role.mustHaveSkills.map(SkillName.display))
                     if !role.niceToHaveSkills.isEmpty {
-                        ChipFlow(items: role.niceToHaveSkills.map { "+ \($0.capitalized)" })
+                        ChipFlow(items: role.niceToHaveSkills.map { "+ \(SkillName.display($0))" })
                     }
                 }
                 .padding(12)
@@ -122,18 +185,16 @@ struct ConciergeView: View {
 
             estimateRows(assignment.requirements)
 
-            if assignment.requirements.clarifyingQuestions.isEmpty {
-                Label("The concierge has everything it needs", systemImage: "checkmark.seal")
-                    .font(.caption)
-                    .foregroundStyle(Theme.success)
-            } else {
-                conciergeThread(assignment)
-            }
+            IntakeTranscriptView(history: priorHistory(assignment))
 
+            conciergeThread(assignment)
+
+            errorBanner
+            activityNote
             Button {
                 Task { await model.findSpecialists() }
             } label: {
-                if model.isBusy { ProgressView().tint(.white) } else { Text("Find specialists") }
+                Text("Find specialists")
             }
             .buttonStyle(.primary)
             .disabled(model.isBusy)
@@ -164,40 +225,66 @@ struct ConciergeView: View {
         .font(.subheadline)
     }
 
+    /// Everything before the live question set. The newest concierge turn *is* the list
+    /// rendered underneath, so including it in the transcript says the same thing twice.
+    private func priorHistory(_ assignment: Assignment) -> [IntakeMessage] {
+        guard !assignment.requirements.clarifyingQuestions.isEmpty,
+              assignment.intakeHistory.last?.isCompany == false
+        else { return assignment.intakeHistory }
+        return assignment.intakeHistory.dropLast()
+    }
+
+    /// The concierge conversation. The input stays available even when the AI has no
+    /// further questions — otherwise the model alone decides when the conversation is
+    /// over, and there is no way to volunteer a correction it did not ask for.
     private func conciergeThread(_ assignment: Assignment) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("The concierge would like to know:")
-                .font(.subheadline.weight(.semibold))
-            ForEach(assignment.requirements.clarifyingQuestions, id: \.self) { question in
-                Label(question, systemImage: "questionmark.circle")
-                    .font(.subheadline)
+        let questions = assignment.requirements.clarifyingQuestions
+        return VStack(alignment: .leading, spacing: 10) {
+            if questions.isEmpty {
+                Label("The concierge has everything it needs", systemImage: "checkmark.seal")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.success)
+                Text("Anything to add or correct?")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+            } else {
+                Text("The concierge would like to know:")
+                    .font(.subheadline.weight(.semibold))
+                ForEach(questions, id: \.self) { question in
+                    Label(question, systemImage: "questionmark.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
+
             HStack(spacing: 8) {
-                TextField("Answer in your own words…", text: $model.answerText, axis: .vertical)
-                    .lineLimit(1 ... 4)
-                    .textFieldStyle(.roundedBorder)
+                TextField(
+                    questions.isEmpty ? "Add or correct anything…" : "Answer in your own words…",
+                    text: $model.answerText,
+                    axis: .vertical
+                )
+                .lineLimit(1 ... 4)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
                 Button {
                     Task { await model.sendAnswer() }
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
-                        .font(.title)
+                        .font(.title2)
+                        // Below 44pt this is under the minimum comfortable tap target.
+                        .frame(width: 44, height: 44)
                         .foregroundStyle(Theme.accent)
+                        .contentShape(.rect)
                 }
                 .disabled(
                     model.answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                         || model.isBusy
                 )
-                .accessibilityLabel("Send answer to the concierge")
-            }
-            if model.isBusy {
-                Label("The concierge is updating your assignment…", systemImage: "sparkles")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .accessibilityLabel("Send to the concierge")
             }
         }
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
+        .background(Theme.nestedSurface, in: .rect(cornerRadius: 12))
     }
 
     private func matchList(_ matches: [Match]) -> some View {
@@ -222,6 +309,7 @@ struct ConciergeView: View {
                         .background(Theme.accentSoft, in: .rect(cornerRadius: 12))
                 }
             }
+            errorBanner
             if matches.isEmpty {
                 ContentUnavailableView(
                     "No specialists yet",
@@ -229,8 +317,8 @@ struct ConciergeView: View {
                     description: Text("As specialists join, matches will appear here instantly.")
                 )
             }
-            ForEach(matches) { match in
-                CandidateCard(match: match, api: api) { decision in
+            ForEach(Array(matches.enumerated()), id: \.element.id) { index, match in
+                CandidateCard(match: match, api: api, rank: index + 1) { decision in
                     Task { await model.decide(match: match, decision: decision) }
                 }
             }
@@ -253,28 +341,23 @@ struct EstimateBadge: View {
 struct CandidateCard: View {
     let match: Match
     let api: APIClient
+    let rank: Int
     let onDecision: (MatchDecision) -> Void
+
+    @State private var showsBreakdown = false
+    @State private var showsDetail = false
+
+    private var quality: MatchQuality { MatchQuality(score: match.score) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                ScoreRing(score: match.score).frame(width: 54, height: 54)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(match.specialist.headline)
-                        .font(.headline)
-                    Text(
-                        "\(match.specialist.yearsExperience) yrs · \(match.specialist.country) · \(match.specialist.remotePreference.displayName)"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    if let rate = match.specialist.hourlyRate {
-                        Text("\(Int(rate)) \(match.specialist.currency)/hour")
-                            .font(.caption.weight(.medium))
-                    }
-                }
-                Spacer()
+            Button {
+                showsDetail = true
+            } label: {
+                summary
             }
-            ChipFlow(items: match.specialist.skills.prefix(5).map { $0.name.capitalized })
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens the full candidate profile")
 
             NavigationLink {
                 InterviewView(api: api, matchId: match.id, viewer: .company)
@@ -283,41 +366,120 @@ struct CandidateCard: View {
                     .font(.subheadline.weight(.medium))
             }
 
-            if match.status == "mutual" {
-                Label("It's a match — chat unlocked", systemImage: "checkmark.seal.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.success)
-                NavigationLink {
-                    ContractView(api: api, matchId: match.id, isCompany: true)
-                } label: {
-                    Label("Contract", systemImage: "doc.text")
-                        .font(.subheadline.weight(.medium))
+            ChipFlow(items: match.specialist.skills.prefix(6).map { SkillName.display($0.name) })
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showsBreakdown.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.bar.xaxis")
+                    Text(showsBreakdown ? "Hide why" : "Why this match")
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(showsBreakdown ? 0 : -90))
+                        .font(.caption2.weight(.semibold))
                 }
-            } else if match.companyDecision == .pending {
-                HStack(spacing: 10) {
-                    Button {
-                        onDecision(.rejected)
-                    } label: {
-                        Label("Pass", systemImage: "xmark")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    Button {
-                        onDecision(.accepted)
-                    } label: {
-                        Label("Shortlist", systemImage: "checkmark")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Theme.accent)
-                }
-            } else {
-                Text(match.companyDecision == .accepted ? "Shortlisted — waiting for the specialist" : "Passed")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                .font(.footnote.weight(.medium))
             }
+            .buttonStyle(.plain)
+
+            if showsBreakdown {
+                MatchBreakdownView(breakdown: match.breakdown)
+            }
+
+            decisionControls
         }
         .padding()
         .cardStyle()
+        .sheet(isPresented: $showsDetail) {
+            SpecialistDetailSheet(match: match, onDecision: onDecision)
+        }
+    }
+
+    private var summary: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ScoreRing(score: match.score, centerText: "#\(rank)")
+            VStack(alignment: .leading, spacing: 4) {
+                Text(match.specialist.headline)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 6) {
+                    MatchQualityBadge(quality: quality)
+                    if rank == 1 {
+                        Text("Best match")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text(
+                    "\(match.specialist.yearsExperience) yrs · \(match.specialist.country) · \(match.specialist.remotePreference.displayName)"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                if let rate = match.specialist.hourlyRate {
+                    Text("\(Int(rate)) \(match.specialist.currency)/hour")
+                        .font(.caption.weight(.medium))
+                }
+            }
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            """
+            Rank \(rank), \(quality.label). \(match.specialist.headline). \
+            \(match.specialist.yearsExperience) years, \(match.specialist.country), \
+            \(match.specialist.remotePreference.displayName)
+            """
+        )
+    }
+
+    @ViewBuilder
+    private var decisionControls: some View {
+        if match.status == "mutual" {
+            // Chat really is unlocked here, so the claim stands — but it lives in the
+            // Messages tab, and a promise the user cannot act on from this card is only
+            // marginally better than one that isn't true.
+            VStack(alignment: .leading, spacing: 4) {
+                Label("It's a match — you both accepted", systemImage: "checkmark.seal.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.success)
+                Text("Chat is open under Messages.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            NavigationLink {
+                ContractView(api: api, matchId: match.id, isCompany: true)
+            } label: {
+                Label("Contract", systemImage: "doc.text")
+                    .font(.subheadline.weight(.medium))
+            }
+        } else if match.companyDecision == .pending {
+            HStack(spacing: 10) {
+                Button {
+                    onDecision(.rejected)
+                } label: {
+                    Label("Pass", systemImage: "xmark").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                Button {
+                    onDecision(.accepted)
+                } label: {
+                    Label("Shortlist", systemImage: "checkmark").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+            }
+            .controlSize(.large)
+        } else {
+            Text(
+                match.companyDecision == .accepted
+                    ? "Shortlisted — waiting for the specialist"
+                    : "Passed"
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
     }
 }

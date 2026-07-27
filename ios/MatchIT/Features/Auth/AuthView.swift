@@ -26,13 +26,21 @@ struct AuthView: View {
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .textContentType(.emailAddress)
-                    SecureField("Password (10+ characters)", text: $model.password)
-                        .textContentType(model.mode == .register ? .newPassword : .password)
+                        .autocorrectionDisabled()
+                    passwordField
                 }
                 .textFieldStyle(.roundedBorder)
 
+                if let hint = model.validationHint {
+                    Text(hint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityAddTraits(.isStaticText)
+                }
+
                 if let message = model.errorMessage {
-                    ErrorBanner(message: message)
+                    ErrorBanner(message: message, onDismiss: { model.errorMessage = nil })
                 }
 
                 Button {
@@ -50,6 +58,35 @@ struct AuthView: View {
             .padding(Theme.screenPadding)
         }
         .background(Color(.systemGroupedBackground))
+        .onChange(of: model.mode) { model.modeChanged() }
+    }
+
+    /// Reveal toggle: a 10-character minimum typed blind on a phone keyboard is a
+    /// needless source of failed sign-ins.
+    private var passwordField: some View {
+        HStack(spacing: 8) {
+            Group {
+                if model.isPasswordVisible {
+                    TextField("Password (10+ characters)", text: $model.password)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } else {
+                    SecureField("Password (10+ characters)", text: $model.password)
+                }
+            }
+            .textContentType(model.mode == .register ? .newPassword : .password)
+
+            Button {
+                model.isPasswordVisible.toggle()
+            } label: {
+                Image(systemName: model.isPasswordVisible ? "eye.slash" : "eye")
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(model.isPasswordVisible ? "Hide password" : "Show password")
+        }
     }
 
     private var header: some View {
@@ -67,14 +104,20 @@ struct AuthView: View {
     }
 
     private var rolePicker: some View {
-        HStack {
-            Text("I am a").foregroundStyle(.secondary)
-            Spacer()
-            Picker("Role", selection: $model.role) {
-                ForEach([UserRole.freelancer, .employee, .consultancy, .hiringManager, .recruiter], id: \.self) {
-                    Text($0.displayName)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("I am a").foregroundStyle(.secondary)
+                Spacer()
+                Picker("Role", selection: $model.role) {
+                    ForEach([UserRole.freelancer, .employee, .consultancy, .hiringManager, .recruiter], id: \.self) {
+                        Text($0.displayName)
+                    }
                 }
             }
+            Text(model.roleExplanation)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 2)
     }

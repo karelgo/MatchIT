@@ -102,6 +102,11 @@ actor APIClient {
         try await put("specialists/me", body: draft)
     }
 
+    /// Newest first.
+    func assignments() async throws -> [Assignment] {
+        try await get("assignments")
+    }
+
     func createAssignment(description: String) async throws -> Assignment {
         try await post("assignments", body: ["description": description])
     }

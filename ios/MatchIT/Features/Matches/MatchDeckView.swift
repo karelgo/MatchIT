@@ -11,13 +11,34 @@ struct MatchDeckView: View {
         _model = State(initialValue: MatchDeckViewModel(api: api))
     }
 
+    /// Which way the current drag is leaning, so the card can say what will happen
+    /// before the gesture completes.
+    private var dragDecision: MatchDecision? {
+        if dragOffset.width > 24 { return .accepted }
+        if dragOffset.width < -24 { return .rejected }
+        return nil
+    }
+
+    private var dragProgress: Double {
+        min(1, abs(dragOffset.width) / 110)
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
                 if let message = model.errorMessage {
-                    ErrorBanner(message: message).padding(.horizontal)
+                    ErrorBanner(
+                        message: message,
+                        onRetry: { Task { await model.load() } },
+                        onDismiss: { model.errorMessage = nil }
+                    )
+                    .padding(.horizontal)
                 }
                 content
+                // In normal layout flow rather than a `safeAreaInset`: an inset whose
+                // content starts out empty does not reliably lay out when it appears,
+                // and this needs to reserve space instead of covering the action bar.
+                undoBar
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemGroupedBackground))
@@ -25,12 +46,53 @@ struct MatchDeckView: View {
             .task { await model.load() }
             .refreshable { await model.load() }
             .sensoryFeedback(.success, trigger: model.lastMutualMatch?.id)
-            .sheet(item: $interviewTarget) { target in
-                NavigationStack {
-                    InterviewView(api: api, matchId: target.id, viewer: .specialist)
+            .animation(.spring(duration: 0.3), value: model.pendingUndo?.id)
+            // A held decision must not be lost just because the screen went away.
+            .onDisappear { model.flushPendingDecision() }
+            .sheet(item: activeSheetBinding) { sheet in
+                switch sheet {
+                case let .interview(matchId):
+                    NavigationStack {
+                        InterviewView(api: api, matchId: matchId, viewer: .specialist)
+                    }
+                case let .mutualMatch(match):
+                    MutualMatchSheet(match: match) { model.lastMutualMatch = nil }
                 }
             }
         }
+    }
+
+    /// Interviews and mutual matches share one sheet.
+    ///
+    /// A held decision can commit into a mutual match while the interview sheet is
+    /// already open, and two `.sheet` modifiers on the same view then race to present.
+    /// Routing both through a single binding makes that defined, and the match wins
+    /// because it is the more consequential event.
+    private enum DeckSheet: Identifiable {
+        case interview(UUID)
+        case mutualMatch(Match)
+
+        var id: String {
+            switch self {
+            case let .interview(matchId): "interview-\(matchId)"
+            case let .mutualMatch(match): "mutual-\(match.id)"
+            }
+        }
+    }
+
+    private var activeSheetBinding: Binding<DeckSheet?> {
+        Binding(
+            get: {
+                if let match = model.lastMutualMatch { return .mutualMatch(match) }
+                if let target = interviewTarget { return .interview(target.id) }
+                return nil
+            },
+            set: { newValue in
+                guard newValue == nil else { return }
+                model.lastMutualMatch = nil
+                interviewTarget = nil
+            }
+        )
     }
 
     @ViewBuilder
@@ -50,19 +112,46 @@ struct MatchDeckView: View {
         }
     }
 
+    @ViewBuilder
+    private var undoBar: some View {
+        if let pending = model.pendingUndo {
+            HStack(spacing: 12) {
+                Text(pending.summary)
+                    .font(.subheadline)
+                    .lineLimit(1)
+                Spacer()
+                Button("Undo") { model.undo() }
+                    .font(.subheadline.weight(.semibold))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Theme.cardSurface, in: .capsule)
+            .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+            .padding(.horizontal, Theme.screenPadding)
+            .padding(.bottom, 8)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
     private var deck: some View {
         ZStack {
             ForEach(Array(model.deck.prefix(3).enumerated().reversed()), id: \.element.id) { index, match in
                 OpportunityCard(
                     match: match,
-                    onInterview: index == 0 ? { interviewTarget = InterviewTarget(id: match.id) } : nil
+                    onInterview: index == 0 ? { interviewTarget = InterviewTarget(id: match.id) } : nil,
+                    dragDecision: index == 0 ? dragDecision : nil,
+                    dragProgress: index == 0 ? dragProgress : 0
                 )
                 .scaleEffect(1 - CGFloat(index) * 0.04)
-                    .offset(y: CGFloat(index) * 12)
-                    .offset(index == 0 ? dragOffset : .zero)
-                    .rotationEffect(.degrees(index == 0 ? Double(dragOffset.width / 18) : 0))
-                    .gesture(index == 0 ? dragGesture : nil)
-                    .animation(.spring(duration: 0.35), value: dragOffset)
+                .offset(y: CGFloat(index) * 12)
+                .offset(index == 0 ? dragOffset : .zero)
+                .rotationEffect(.degrees(index == 0 ? Double(dragOffset.width / 18) : 0))
+                .gesture(index == 0 ? dragGesture : nil)
+                .animation(.spring(duration: 0.35), value: dragOffset)
+                .accessibilityActions {
+                    Button("Accept this opportunity") { swipe(.accepted) }
+                    Button("Pass on this opportunity") { swipe(.rejected) }
+                }
             }
         }
         .padding(.horizontal, Theme.screenPadding)
@@ -86,8 +175,11 @@ struct MatchDeckView: View {
 
     private func swipe(_ decision: MatchDecision) {
         dragOffset = CGSize(width: decision == .accepted ? 600 : -600, height: 0)
+        // Let the card fly off before it is removed, otherwise the offset lands on the
+        // next card instead and nothing appears to move.
         Task {
-            await model.decideTopCard(decision)
+            try? await Task.sleep(for: .milliseconds(220))
+            model.decideTopCard(decision)
             dragOffset = .zero
         }
     }
@@ -116,7 +208,7 @@ struct MatchDeckView: View {
             }
             .accessibilityLabel("Accept this opportunity")
         }
-        .padding(.bottom, 24)
+        .padding(.bottom, 8)
     }
 }
 
@@ -130,18 +222,29 @@ struct InterviewTarget: Identifiable {
 struct OpportunityCard: View {
     let match: Match
     var onInterview: (() -> Void)?
+    var dragDecision: MatchDecision?
+    var dragProgress: Double = 0
+
+    @State private var showsDetail = false
+    /// Keeps the stacked cards a consistent size while still growing with text size —
+    /// the previous hard 420pt clipped its content at large accessibility sizes.
+    @ScaledMetric(relativeTo: .body) private var minCardHeight: CGFloat = 420
 
     private var requirements: AssignmentRequirements { match.assignment.requirements }
+    private var quality: MatchQuality { MatchQuality(score: match.score) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                if let role = requirements.roles.first {
-                    Text(role.title)
-                        .font(.system(.title2, design: .rounded, weight: .bold))
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if let role = requirements.roles.first {
+                        Text(role.title)
+                            .font(.system(.title2, design: .rounded, weight: .bold))
+                    }
+                    MatchQualityBadge(quality: quality)
                 }
                 Spacer()
-                ScoreRing(score: match.score).frame(width: 50, height: 50)
+                ScoreRing(score: match.score)
             }
             Text(requirements.summary)
                 .font(.body)
@@ -149,7 +252,7 @@ struct OpportunityCard: View {
                 .lineLimit(6)
 
             if let role = requirements.roles.first {
-                ChipFlow(items: role.mustHaveSkills.map(\.capitalized))
+                ChipFlow(items: role.mustHaveSkills.map(SkillName.display))
             }
 
             HStack(spacing: 14) {
@@ -167,6 +270,22 @@ struct OpportunityCard: View {
             .font(.caption.weight(.medium))
             .foregroundStyle(.secondary)
 
+            // A sheet rather than inline expansion: this card is a fixed-size draggable
+            // object, and growing it in place crushes the title and summary to one line
+            // and clips the bottom.
+            Button {
+                showsDetail = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.bar.xaxis")
+                    Text("Why this match")
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                }
+                .font(.footnote.weight(.medium))
+            }
+            .buttonStyle(.plain)
+
             Spacer(minLength: 0)
 
             if let onInterview {
@@ -180,13 +299,41 @@ struct OpportunityCard: View {
             }
 
             Label("Swipe right to accept, left to pass", systemImage: "hand.draw")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(22)
-        .frame(maxWidth: .infinity, minHeight: 420, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: minCardHeight, alignment: .topLeading)
         .cardStyle()
+        .overlay(alignment: .top) { dragStamp }
         .accessibilityElement(children: .contain)
+        .sheet(isPresented: $showsDetail) {
+            OpportunityDetailSheet(match: match)
+        }
+    }
+
+    /// Tells the user what the in-flight gesture will do, and when it has gone far enough.
+    @ViewBuilder
+    private var dragStamp: some View {
+        if let dragDecision {
+            let accepted = dragDecision == .accepted
+            Label(
+                accepted ? "Accept" : "Pass",
+                systemImage: accepted ? "checkmark.circle.fill" : "xmark.circle.fill"
+            )
+            .font(.system(.title3, design: .rounded, weight: .heavy))
+            .foregroundStyle(accepted ? Theme.success : Theme.danger)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: .capsule)
+            .overlay {
+                Capsule().stroke(accepted ? Theme.success : Theme.danger, lineWidth: 2)
+            }
+            .opacity(dragProgress)
+            .scaleEffect(0.85 + 0.15 * dragProgress)
+            .padding(.top, 18)
+            .accessibilityHidden(true)
+        }
     }
 }
