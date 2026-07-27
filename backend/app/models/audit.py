@@ -14,6 +14,8 @@ class AuditAction(enum.StrEnum):
     CONTRACT_SIGNED = "contract_signed"
     DATA_EXPORTED = "data_exported"
     ACCOUNT_DELETED = "account_deleted"
+    USER_SUSPENDED = "user_suspended"
+    USER_REINSTATED = "user_reinstated"
 
 
 class AuditLog(TimestampedBase):

@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     pubsub_backend: str = "redis"  # redis | memory
     rate_limit_backend: str = "redis"  # redis | memory | off
+    usage_counter_backend: str = "redis"  # redis | memory
     login_rate_limit: int = 10  # attempts per window, per IP
     login_rate_window_seconds: int = 300
     ai_rate_limit: int = 30  # expensive AI calls per window, per user

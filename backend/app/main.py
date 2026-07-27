@@ -8,9 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.ai.embeddings import EmbeddingModel, build_embedding_model
 from app.ai.llm import ChatModel, build_chat_model
-from app.api.v1 import assignments, auth, chat, contracts, interviews, privacy, profiles
+from app.api.v1 import (
+    admin,
+    assignments,
+    auth,
+    chat,
+    contracts,
+    interviews,
+    privacy,
+    profiles,
+)
 from app.core.config import Settings, get_settings
 from app.db.session import get_sessionmaker
+from app.services.analytics import AnalyticsService
 from app.services.apple import AppleIdentityVerifier, JWKSAppleVerifier
 from app.services.audit import AuditService
 from app.services.auth import AuthService
@@ -26,6 +36,7 @@ from app.services.pubsub import PubSub, build_pubsub
 from app.services.ratelimit import RateLimiter, build_rate_limiter
 from app.services.team import TeamBuilderService
 from app.services.trust import TrustScoreService
+from app.services.usage import MeteredChatModel, UsageCounter, build_usage_counter
 from app.services.vector import VectorIndex, build_vector_index
 
 structlog.configure(
@@ -43,6 +54,7 @@ def create_app(
     pubsub: PubSub | None = None,
     rate_limiter: RateLimiter | None = None,
     github_client: GitHubClient | None = None,
+    usage_counter: UsageCounter | None = None,
     sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
@@ -61,15 +73,23 @@ def create_app(
 
     app.state.settings = settings
     app.state.auth_service = AuthService(settings, apple_verifier or JWKSAppleVerifier(settings))
-    app.state.intake_service = IntakeService(llm)
-    app.state.interview_service = InterviewService(llm)
-    app.state.contract_service = ContractService(llm)
+    counter = usage_counter or build_usage_counter(settings)
+    app.state.usage_counter = counter
+
+    def metered(feature: str) -> ChatModel:
+        """Label AI usage at construction, so no call site has to remember to."""
+        return MeteredChatModel(llm, feature=feature, counter=counter)
+
+    app.state.intake_service = IntakeService(metered("intake"))
+    app.state.interview_service = InterviewService(metered("interview"))
+    app.state.contract_service = ContractService(metered("contract"))
     app.state.enrichment_service = EnrichmentService(
-        llm, github_client or build_github_client()
+        metered("enrichment"), github_client or build_github_client()
     )
+    app.state.analytics_service = AnalyticsService()
     matching_engine = MatchingEngine(embeddings, index)
     app.state.matching_engine = matching_engine
-    app.state.team_builder = TeamBuilderService(llm, matching_engine)
+    app.state.team_builder = TeamBuilderService(metered("team_builder"), matching_engine)
     app.state.trust_service = TrustScoreService()
     app.state.audit_service = AuditService()
     app.state.privacy_service = PrivacyService()
@@ -87,6 +107,7 @@ def create_app(
     app.include_router(interviews.router, prefix=api_prefix)
     app.include_router(contracts.router, prefix=api_prefix)
     app.include_router(privacy.router, prefix=api_prefix)
+    app.include_router(admin.router, prefix=api_prefix)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

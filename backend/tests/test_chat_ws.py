@@ -42,6 +42,7 @@ def build_sync_client(tmp_path) -> TestClient:
         vector_backend="memory",
         pubsub_backend="memory",
         rate_limit_backend="memory",
+        usage_counter_backend="memory",
         login_rate_limit=200,
     )
     app = create_app(

@@ -73,8 +73,15 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   & commission.
 
 ## Epic 7 — Admin portal & analytics
-- User management, disputes, fraud queue; funnel/retention/LTV/CAC dashboards;
-  AI cost per feature; revenue reporting.
+- ✅ Admin API (Iteration 9): funnel and conversion metrics, match/interview/trust
+  quality signals, mean time from assignment to active contract, users by role,
+  and AI calls attributed per feature. Admin-only, and invisible (404, not 403)
+  to everyone else.
+- ✅ User management: suspend/reinstate, both audited; a suspended account is
+  locked out immediately on its already-issued token.
+- ✅ Audit search by action and actor.
+- The portal UI itself (a thin web client over these endpoints), disputes and
+  fraud queues, revenue/LTV/CAC once payments land.
 
 ## Epic 8 — Trust & safety, compliance
 - ✅ Rate limiting (Iteration 6): fixed-window, Redis-backed so the budget is
@@ -96,7 +103,8 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 7 — admin portal & analytics.** Six iterations of product exist with no
-way to see it working: no funnel, no match-success rate, no time-to-hire, no AI
-cost per feature, and no way to investigate a dispute or a fraud report. The
-audit log from Epic 8 is already the raw material for most of it.
+**Epic 6, story 2 — payments.** Contracts activate but no money moves: no
+escrow, no invoicing, no VAT, no commission. It is the last thing standing
+between the platform and its own revenue, and the contract's commercial terms
+(rate, hours, dates) are already modelled as real columns precisely so invoicing
+can query them.

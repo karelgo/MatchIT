@@ -27,6 +27,15 @@ class EmailTakenError(Exception):
     pass
 
 
+class RoleNotSelfAssignable(Exception):
+    """Privileged roles cannot be claimed at registration."""
+
+
+# Public registration must never mint privilege. Admins are provisioned
+# out-of-band; nothing in the sign-up flow can grant this role.
+SELF_ASSIGNABLE_ROLES = frozenset(UserRole) - {UserRole.ADMIN}
+
+
 @dataclass
 class TokenPair:
     access_token: str
@@ -42,6 +51,8 @@ class AuthService:
     async def register(
         self, db: AsyncSession, *, email: str, password: str, full_name: str, role: UserRole
     ) -> TokenPair:
+        if role not in SELF_ASSIGNABLE_ROLES:
+            raise RoleNotSelfAssignable(role.value)
         email = email.strip().lower()
         existing = await db.scalar(select(User).where(User.email == email))
         if existing is not None:
@@ -67,6 +78,8 @@ class AuthService:
     async def login_with_apple(
         self, db: AsyncSession, *, identity_token: str, full_name: str | None, role: UserRole
     ) -> TokenPair:
+        if role not in SELF_ASSIGNABLE_ROLES:
+            raise RoleNotSelfAssignable(role.value)
         identity = self._apple.verify(identity_token)
         user = await db.scalar(select(User).where(User.apple_user_id == identity.apple_user_id))
         if user is None and identity.email:

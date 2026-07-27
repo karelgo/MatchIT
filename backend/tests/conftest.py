@@ -17,6 +17,7 @@ from app.services.apple import AppleIdentity
 from app.services.github import FakeGitHubClient, Repository
 from app.services.pubsub import InMemoryPubSub
 from app.services.ratelimit import InMemoryRateLimiter
+from app.services.usage import InMemoryUsageCounter
 from app.services.vector import InMemoryVectorIndex
 
 
@@ -56,6 +57,7 @@ def test_settings() -> Settings:
         vector_backend="memory",
         pubsub_backend="memory",
         rate_limit_backend="memory",
+        usage_counter_backend="memory",
         login_rate_limit=50,
         database_url="sqlite+aiosqlite://",
     )
@@ -132,6 +134,7 @@ async def client(
         pubsub=InMemoryPubSub(),
         rate_limiter=InMemoryRateLimiter(),
         github_client=github_client,
+        usage_counter=InMemoryUsageCounter(),
         sessionmaker=sessionmaker,
     )
 

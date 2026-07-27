@@ -88,3 +88,5 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
 8. **Evidence-backed skills** — CV and GitHub enrichment: every skill carries its
    source and the specific evidence behind it, and a stronger source is never
    overwritten by a weaker one.
+9. **Admin & analytics** — funnel, conversion, quality signals, time-to-contract,
+   per-feature AI usage, user suspension and audit search.

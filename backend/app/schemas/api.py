@@ -357,6 +357,49 @@ class ContractResponse(BaseModel):
     created_at: UTCDatetime
 
 
+# ---- admin ----
+
+
+class FunnelView(BaseModel):
+    specialists: int
+    companies: int
+    assignments: int
+    matches_suggested: int
+    matches_mutual: int
+    interviews_completed: int
+    contracts_active: int
+
+
+class AdminMetricsResponse(BaseModel):
+    funnel: FunnelView
+    conversion: dict[str, float]
+    quality: dict[str, float]
+    users_by_role: dict[str, int]
+    mean_time_to_contract_hours: float | None
+    ai_calls_by_feature: dict[str, int]
+
+
+class AdminUserView(BaseModel):
+    id: uuid.UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    is_active: bool
+    is_verified: bool
+    created_at: UTCDatetime
+
+
+class AdminAuditEntry(BaseModel):
+    id: uuid.UUID
+    actor_user_id: uuid.UUID | None
+    action: str
+    target_type: str | None
+    target_id: uuid.UUID | None
+    client_ip: str | None
+    context: dict
+    created_at: UTCDatetime
+
+
 # ---- chat ----
 
 

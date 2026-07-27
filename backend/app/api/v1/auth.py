@@ -12,7 +12,13 @@ from app.schemas.api import (
     TokenResponse,
 )
 from app.services.apple import AppleVerificationError
-from app.services.auth import AuthError, AuthService, EmailTakenError, TokenPair
+from app.services.auth import (
+    AuthError,
+    AuthService,
+    EmailTakenError,
+    RoleNotSelfAssignable,
+    TokenPair,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -45,6 +51,8 @@ async def register(
         )
     except EmailTakenError:
         raise HTTPException(status.HTTP_409_CONFLICT, "email already registered") from None
+    except RoleNotSelfAssignable:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "role cannot be self-assigned") from None
     await audit.record(
         db, AuditAction.USER_REGISTERED, actor_user_id=pair.user.id, request=request
     )
@@ -82,6 +90,8 @@ async def apple_sign_in(body: AppleSignInRequest, db: DbSession, auth: AuthServi
         pair = await auth.login_with_apple(
             db, identity_token=body.identity_token, full_name=body.full_name, role=body.role
         )
+    except RoleNotSelfAssignable:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "role cannot be self-assigned") from None
     except (AppleVerificationError, AuthError):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "apple sign-in failed") from None
     return _to_response(pair)
