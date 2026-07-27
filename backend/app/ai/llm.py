@@ -53,14 +53,13 @@ class AnthropicChatModel:
         raise RuntimeError("model returned no tool_use block")
 
 
-class OpenAIChatModel:
-    """Structured output via JSON mode; also covers Azure OpenAI deployments."""
+class _JSONModeChatModel:
+    """Structured output via JSON mode.
 
-    def __init__(self, api_key: str, model: str):
-        import openai
-
-        self._client = openai.AsyncOpenAI(api_key=api_key)
-        self._model = model
+    Shared by every OpenAI-compatible endpoint. Subclasses build `_client` (an
+    `openai.AsyncOpenAI` or a subclass of it) and set `_model` to the model id or,
+    for a deployment-addressed endpoint, the deployment name.
+    """
 
     async def complete_structured(
         self, *, system: str, user: str, schema: type[T], max_tokens: int = 2048
@@ -81,6 +80,87 @@ class OpenAIChatModel:
             ],
         )
         content = response.choices[0].message.content or "{}"
+        return schema.model_validate_json(content)
+
+
+class OpenAIChatModel(_JSONModeChatModel):
+    def __init__(self, api_key: str, model: str):
+        import openai
+
+        self._client = openai.AsyncOpenAI(api_key=api_key)
+        self._model = model
+
+
+def foundry_base_url(endpoint: str) -> str:
+    """Normalise a Foundry endpoint to its OpenAI-compatible v1 base URL.
+
+    The portal hands out both the resource root and full operation URLs such as
+    `https://<resource>.services.ai.azure.com/openai/v1/responses`, so accept
+    either and let the SDK append the operation path itself.
+    """
+    trimmed = endpoint.strip().rstrip("/")
+    marker = "/openai/v1"
+    if marker in trimmed:
+        return trimmed[: trimmed.index(marker) + len(marker)] + "/"
+    return f"{trimmed}{marker}/"
+
+
+class FoundryChatModel:
+    """A model deployed on Microsoft Foundry (Azure AI Foundry).
+
+    Foundry's v1 surface is OpenAI-compatible, so the stock client works once it is
+    pointed at the resource. It serves the Responses API, which reports a refusal or
+    a truncated generation instead of raising, so both are turned into errors here.
+    """
+
+    def __init__(self, endpoint: str, api_key: str, model: str):
+        import openai
+
+        missing = [
+            name
+            for name, value in (
+                ("MATCHIT_FOUNDRY_ENDPOINT", endpoint),
+                ("MATCHIT_FOUNDRY_API_KEY", api_key),
+                ("MATCHIT_FOUNDRY_MODEL", model),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(f"foundry llm_provider requires {', '.join(missing)}")
+
+        self._client = openai.AsyncOpenAI(
+            base_url=foundry_base_url(endpoint), api_key=api_key
+        )
+        self._model = model
+
+    async def complete_structured(
+        self, *, system: str, user: str, schema: type[T], max_tokens: int = 2048
+    ) -> T:
+        response = await self._client.responses.create(
+            model=self._model,
+            instructions=system,
+            # The schema goes in the input, not the instructions: json_object format
+            # is rejected unless the input messages themselves ask for JSON.
+            input=[
+                {
+                    "role": "user",
+                    "content": (
+                        f"{user}\n\nRespond with a single JSON object matching this "
+                        f"JSON schema:\n{json.dumps(schema.model_json_schema())}"
+                    ),
+                }
+            ],
+            text={"format": {"type": "json_object"}},
+            # Reasoning models spend part of this budget before emitting anything,
+            # so the cap has to cover the thinking as well as the JSON.
+            max_output_tokens=max(max_tokens, 4096),
+        )
+        content = (response.output_text or "").strip()
+        if not content:
+            raise RuntimeError(
+                f"foundry model {self._model} returned no output "
+                f"(status={response.status!r})"
+            )
         return schema.model_validate_json(content)
 
 
@@ -108,6 +188,10 @@ def build_chat_model(settings: Settings) -> ChatModel:
         return AnthropicChatModel(settings.anthropic_api_key, settings.anthropic_model)
     if settings.llm_provider == "openai":
         return OpenAIChatModel(settings.openai_api_key, settings.openai_model)
+    if settings.llm_provider == "foundry":
+        return FoundryChatModel(
+            settings.foundry_endpoint, settings.foundry_api_key, settings.foundry_model
+        )
     if settings.llm_provider == "fake":
         return FakeChatModel()
     raise ValueError(f"unknown llm_provider: {settings.llm_provider}")

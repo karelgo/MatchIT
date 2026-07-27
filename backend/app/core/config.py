@@ -22,11 +22,18 @@ class Settings(BaseSettings):
     apple_jwks_url: str = "https://appleid.apple.com/auth/keys"
     apple_issuer: str = "https://appleid.apple.com"
 
-    llm_provider: str = "anthropic"  # anthropic | openai | fake
+    llm_provider: str = "anthropic"  # anthropic | openai | foundry | fake
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
+
+    # Microsoft Foundry (Azure AI Foundry), reached through its OpenAI-compatible
+    # v1 surface. The endpoint may be the resource root or a full operation URL
+    # (.../openai/v1/responses); both normalise to the same v1 base URL.
+    foundry_endpoint: str = ""
+    foundry_api_key: str = ""
+    foundry_model: str = ""
 
     embedding_provider: str = "openai"  # openai | fake
     embedding_model: str = "text-embedding-3-small"
