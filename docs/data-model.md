@@ -105,6 +105,11 @@ for the hiring manager and are never sent to the specialist.
 Commercial terms are real columns because invoicing, reporting and escrow query
 them; only the drafted prose lives in JSON, because only humans read it.
 
+### audit_log
+Append-only: `actor_user_id` (FK → users, **ON DELETE SET NULL**), action enum,
+target_type/target_id, client_ip, context JSONB. SET NULL rather than CASCADE is
+deliberate — erasing an account must not erase the record of what it did.
+
 ### refresh_tokens
 token_hash (SHA-256, unique), user_id FK, expires_at, revoked_at. Rotation revokes
 the old row atomically with issuing the new one.

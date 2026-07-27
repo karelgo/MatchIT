@@ -81,3 +81,5 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
 5. **Contracts** — an agent drafts the EU engagement contract from the agreed
    terms (never inventing them), both parties sign in-app, and the second
    signature activates it.
+6. **Compliance** — rate limiting, an append-only audit trail, and GDPR export
+   and erasure (refused while a contract is live).

@@ -64,8 +64,14 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   AI cost per feature; revenue reporting.
 
 ## Epic 8 — Trust & safety, compliance
-- SOC2 controls, audit log everywhere, rate limiting, anomaly detection,
-  GDPR data-subject tooling (export, delete).
+- ✅ Rate limiting (Iteration 6): fixed-window, Redis-backed so the budget is
+  shared across replicas, on registration and login.
+- ✅ Append-only audit log: registration, login success/failure, exports and
+  erasures. The actor FK is SET NULL on delete, never CASCADE — erasing an
+  account must not erase the evidence of what it did.
+- ✅ GDPR data-subject tooling: Article 15/20 export and Article 17 erasure,
+  refused while a contract is active (Art. 17(3)).
+- SOC2 controls, anomaly detection, admin-facing audit search.
 
 ## Epic 9 — Delight
 - Widgets & Live Activities (interview countdowns, match alerts), voice-first
@@ -77,7 +83,9 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 8 — trust, safety and compliance.** The platform now holds CVs, interview
-transcripts and signed contracts: personal data under GDPR, with no export, no
-erasure, no audit trail and no rate limiting. That is the gap most likely to stop
-a real launch, and it is cheap to close now versus retrofitting later.
+**Epic 4 — matching v2 (team builder).** The concierge already extracts multi-role
+assignments (`2× Fabric architect`), but the engine ranks individuals and ignores
+`count` entirely — a company asking for a team gets a list. A team-builder agent
+that assembles complementary specialists against a multi-role assignment is the
+most visible remaining gap between what intake promises and what matching
+delivers.
