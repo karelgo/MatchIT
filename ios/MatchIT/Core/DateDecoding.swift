@@ -23,13 +23,16 @@ extension JSONDecoder.DateDecodingStrategy {
 }
 
 extension ISO8601DateFormatter {
-    static let withFractionalSeconds: ISO8601DateFormatter = {
+    // ISO8601DateFormatter is not Sendable, but it is documented as safe to use from
+    // multiple threads once configured, and these two are never mutated after creation.
+    // Recreating them per decoded value instead would cost more than it buys.
+    nonisolated(unsafe) static let withFractionalSeconds: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
 
-    static let plain: ISO8601DateFormatter = {
+    nonisolated(unsafe) static let plain: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         return formatter
