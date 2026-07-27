@@ -16,6 +16,8 @@ from app.services.audit import AuditService
 from app.services.auth import AuthService
 from app.services.chat import ChatService
 from app.services.contract import ContractService
+from app.services.enrichment import EnrichmentService
+from app.services.github import GitHubClient, build_github_client
 from app.services.intake import IntakeService
 from app.services.interview import InterviewService
 from app.services.matching import MatchingEngine
@@ -40,6 +42,7 @@ def create_app(
     apple_verifier: AppleIdentityVerifier | None = None,
     pubsub: PubSub | None = None,
     rate_limiter: RateLimiter | None = None,
+    github_client: GitHubClient | None = None,
     sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
@@ -61,6 +64,9 @@ def create_app(
     app.state.intake_service = IntakeService(llm)
     app.state.interview_service = InterviewService(llm)
     app.state.contract_service = ContractService(llm)
+    app.state.enrichment_service = EnrichmentService(
+        llm, github_client or build_github_client()
+    )
     matching_engine = MatchingEngine(embeddings, index)
     app.state.matching_engine = matching_engine
     app.state.team_builder = TeamBuilderService(llm, matching_engine)

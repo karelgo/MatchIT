@@ -47,8 +47,22 @@ struct Skill: Codable, Identifiable, Sendable, Equatable, Hashable {
     var name: String
     var level: Int
     var years: Double
+    /// Provenance: self_reported, cv, github, certification or interview.
+    /// Optional so profile drafts, which never set it, still encode.
+    var source: String?
+    var evidence: String?
 
     var id: String { name }
+    var isEvidenced: Bool { (source ?? "self_reported") != "self_reported" }
+}
+
+struct EnrichmentResult: Codable, Sendable {
+    let source: String
+    let summary: String
+    let skillsAdded: Int
+    let skillsUpdated: Int
+    let evidenceCount: Int
+    let profile: SpecialistProfile
 }
 
 enum RemotePreference: String, Codable, CaseIterable, Sendable {

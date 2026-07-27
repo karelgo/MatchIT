@@ -14,6 +14,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import create_app
 from app.services.apple import AppleIdentity
+from app.services.github import FakeGitHubClient, Repository
 from app.services.pubsub import InMemoryPubSub
 from app.services.ratelimit import InMemoryRateLimiter
 from app.services.vector import InMemoryVectorIndex
@@ -71,7 +72,51 @@ def vector_index() -> InMemoryVectorIndex:
 
 
 @pytest.fixture
-async def client(test_settings, fake_chat, vector_index) -> AsyncIterator[AsyncClient]:
+def github_client() -> FakeGitHubClient:
+    return FakeGitHubClient(
+        {
+            "octospecialist": [
+                Repository(
+                    name="fabric-migrator",
+                    description="Tooling for Microsoft Fabric migrations",
+                    language="Python",
+                    stars=120,
+                    is_fork=False,
+                    size_kb=4200,
+                    pushed_at="2026-07-01T10:00:00Z",
+                    topics=["microsoft-fabric", "etl"],
+                ),
+                Repository(
+                    name="awesome-list-fork",
+                    description="A fork",
+                    language="Markdown",
+                    stars=0,
+                    is_fork=True,
+                    size_kb=10,
+                    pushed_at="2024-01-01T10:00:00Z",
+                    topics=[],
+                ),
+            ],
+            "emptyuser": [
+                Repository(
+                    name="only-a-fork",
+                    description=None,
+                    language=None,
+                    stars=0,
+                    is_fork=True,
+                    size_kb=5,
+                    pushed_at=None,
+                    topics=[],
+                )
+            ],
+        }
+    )
+
+
+@pytest.fixture
+async def client(
+    test_settings, fake_chat, vector_index, github_client
+) -> AsyncIterator[AsyncClient]:
     engine = create_async_engine("sqlite+aiosqlite://")
     enable_sqlite_foreign_keys(engine)
     async with engine.begin() as conn:
@@ -86,6 +131,7 @@ async def client(test_settings, fake_chat, vector_index) -> AsyncIterator[AsyncC
         apple_verifier=FakeAppleVerifier(),
         pubsub=InMemoryPubSub(),
         rate_limiter=InMemoryRateLimiter(),
+        github_client=github_client,
         sessionmaker=sessionmaker,
     )
 

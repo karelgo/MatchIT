@@ -6,9 +6,15 @@ struct SkillBar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
+            HStack(spacing: 6) {
                 Text(skill.name.capitalized)
                     .font(.system(.subheadline, design: .rounded, weight: .medium))
+                if skill.isEvidenced {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.success)
+                        .accessibilityLabel("Evidence-backed")
+                }
                 Spacer()
                 Text("\(skill.level)/10")
                     .font(.caption.monospacedDigit())
@@ -23,9 +29,18 @@ struct SkillBar: View {
                 }
             }
             .frame(height: 8)
+            if let evidence = skill.evidence {
+                Text(evidence)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(2)
+            }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(skill.name), level \(skill.level) out of 10")
+        .accessibilityLabel(
+            "\(skill.name), level \(skill.level) out of 10"
+                + (skill.isEvidenced ? ", evidence-backed" : "")
+        )
     }
 }
 

@@ -105,6 +105,42 @@ class InterviewAssessment(BaseModel):
     summary: str = Field(description="Hiring-manager-facing summary of the interview")
 
 
+# ---- supply-side enrichment ----
+
+
+class SkillSource(StrEnum):
+    SELF_REPORTED = "self_reported"
+    CV = "cv"
+    GITHUB = "github"
+    CERTIFICATION = "certification"
+    INTERVIEW = "interview"
+
+
+class EvidencedSkill(BaseModel):
+    name: str = Field(description="Canonical lower-case skill name")
+    level: int = Field(ge=0, le=10, description="Demonstrated level, judged from the evidence")
+    years: float = Field(default=0, ge=0, le=60)
+    evidence: str = Field(description="The specific thing in the source that supports this")
+
+
+class CVExtraction(BaseModel):
+    """Skills and history read out of a CV."""
+
+    headline: str = Field(description="One-line professional headline for this person")
+    summary: str = Field(description="Two or three sentences a hiring manager would read")
+    years_experience: int = Field(ge=0, le=60)
+    skills: list[EvidencedSkill] = Field(default_factory=list)
+    certifications: list[str] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list, description="ISO 639-1 codes")
+
+
+class GitHubExtraction(BaseModel):
+    """Skills inferred from public repository activity."""
+
+    summary: str = Field(description="What this developer's public work actually shows")
+    skills: list[EvidencedSkill] = Field(default_factory=list)
+
+
 # ---- team building ----
 
 

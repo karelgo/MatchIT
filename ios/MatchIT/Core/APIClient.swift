@@ -132,6 +132,16 @@ actor APIClient {
         try await post("assignments/\(assignmentId.uuidString.lowercased())/team", body: Empty())
     }
 
+    // MARK: - Profile enrichment
+
+    func enrichFromCV(cvText: String) async throws -> EnrichmentResult {
+        try await post("specialists/me/enrich/cv", body: ["cv_text": cvText])
+    }
+
+    func enrichFromGitHub(username: String) async throws -> EnrichmentResult {
+        try await post("specialists/me/enrich/github", body: ["username": username])
+    }
+
     // MARK: - Privacy (GDPR)
 
     /// Returns the export as pretty-printed JSON text — the shape is deliberately

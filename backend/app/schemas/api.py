@@ -87,6 +87,10 @@ class SkillInput(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     level: int = Field(ge=0, le=10)
     years: float = Field(default=0, ge=0, le=60)
+    # Where the claim came from, and what backs it. Defaulted so existing
+    # clients keep working; enrichment fills them in.
+    source: str = "self_reported"
+    evidence: str | None = None
 
 
 class SpecialistProfileRequest(BaseModel):
@@ -134,6 +138,23 @@ class CompanyProfileResponse(CompanyProfileRequest):
     id: uuid.UUID
     user_id: uuid.UUID
     is_verified: bool
+
+
+class CVEnrichmentRequest(BaseModel):
+    cv_text: NonBlankStr = Field(min_length=100, max_length=60000)
+
+
+class GitHubEnrichmentRequest(BaseModel):
+    username: NonBlankStr = Field(min_length=1, max_length=39, pattern=r"^[A-Za-z0-9-]+$")
+
+
+class EnrichmentResponse(BaseModel):
+    source: str
+    summary: str
+    skills_added: int
+    skills_updated: int
+    evidence_count: int
+    profile: "SpecialistProfileResponse"
 
 
 # ---- assignments & matches ----

@@ -85,3 +85,6 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
    and erasure (refused while a contract is live).
 7. **Team builder** — multi-role assignments are filled seat by seat, with open
    seats reported rather than padded.
+8. **Evidence-backed skills** — CV and GitHub enrichment: every skill carries its
+   source and the specific evidence behind it, and a stronger source is never
+   overwritten by a weaker one.

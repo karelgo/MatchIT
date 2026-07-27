@@ -35,9 +35,18 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - Push notifications (APNs): new matches, messages, availability requests.
 
 ## Epic 3 — Supply-side intelligence
-- CV/PDF parsing into the skill graph; GitHub repository analysis; certification
-  validation; AI-generated profile summaries & video-intro transcription.
-- Identity verification flow; trust score factors go evidence-based.
+- ✅ CV parsing into the skill graph (Iteration 8): every extracted skill cites
+  the role or project that supports it. Also fills headline, summary,
+  certifications and languages.
+- ✅ GitHub repository analysis: forks and empty repos are dropped before
+  prompting; skills cite the repository that evidences them.
+- ✅ Skill provenance: every skill records its source (self_reported, cv,
+  github, certification, interview). Merging is rank-ordered, so re-reading a CV
+  never downgrades an interview-verified skill and enrichment never deletes.
+- PDF→text extraction (a thin adapter in front of the CV endpoint, which already
+  takes text), certification validation against issuer APIs, video-intro
+  transcription.
+- Identity verification flow; remaining trust score factors go evidence-based.
 
 ## Epic 4 — Matching v2
 - ✅ Team builder (Iteration 7): multi-role assignments are allocated seat by
@@ -87,8 +96,7 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 3 — supply-side intelligence.** Skills are still self-reported: a
-specialist types "Microsoft Fabric, level 9" and the matching engine believes
-them. CV parsing, GitHub analysis and certification validation turn the skill
-graph into something evidence-backed, which is what makes the trust score and the
-interview gap analysis genuinely trustworthy rather than merely computed.
+**Epic 7 — admin portal & analytics.** Six iterations of product exist with no
+way to see it working: no funnel, no match-success rate, no time-to-hire, no AI
+cost per feature, and no way to investigate a dispute or a fraud report. The
+audit log from Epic 8 is already the raw material for most of it.
