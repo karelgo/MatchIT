@@ -147,7 +147,7 @@ struct IntakeMessage: Codable, Sendable, Hashable {
     var isCompany: Bool { role == "company" }
 }
 
-struct Assignment: Codable, Identifiable, Sendable {
+struct Assignment: Codable, Identifiable, Sendable, Equatable {
     let id: UUID
     let rawDescription: String
     let requirements: AssignmentRequirements
@@ -159,7 +159,7 @@ enum MatchDecision: String, Codable, Sendable {
     case pending, accepted, rejected
 }
 
-struct MatchSpecialistView: Codable, Sendable, Identifiable {
+struct MatchSpecialistView: Codable, Sendable, Identifiable, Equatable {
     let id: UUID
     let headline: String
     let skills: [Skill]
@@ -171,13 +171,13 @@ struct MatchSpecialistView: Codable, Sendable, Identifiable {
     let trustScore: Double
 }
 
-struct AssignmentBrief: Codable, Sendable, Identifiable {
+struct AssignmentBrief: Codable, Sendable, Identifiable, Equatable {
     let id: UUID
     let requirements: AssignmentRequirements
     let status: String
 }
 
-struct Match: Codable, Identifiable, Sendable {
+struct Match: Codable, Identifiable, Sendable, Equatable {
     let id: UUID
     let assignmentId: UUID
     let specialistId: UUID
