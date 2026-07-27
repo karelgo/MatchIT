@@ -57,6 +57,27 @@ open MatchIT.xcodeproj
 Point the app at a running backend via the `API_BASE_URL` setting in
 `ios/MatchIT/Support/AppConfig.swift`.
 
+## What is verified, and what is not
+
+The backend is covered by **131 offline tests** (SQLite plus deterministic AI
+fakes — no API keys, no network). Two of those tests guard risks the rest of the
+suite structurally cannot see:
+
+- `test_migrations.py` compares the Postgres DDL that Alembic produces against
+  the DDL the models produce, column by column. The suite builds its schema with
+  `create_all`, so without this, migration drift would only surface in
+  production.
+- `test_ios_contract.py` parses `Models.swift` and checks every Swift DTO against
+  a real API payload. CI cannot compile the iOS app, so a backend field going
+  null under a non-optional Swift property would otherwise reach a user as a
+  crash.
+
+**Not verified here:** the Swift code is not compile-checked — there is no Swift
+toolchain in the development container. The macOS CI job covers it and is
+non-blocking until it has one green run. Two adapters raise rather than pretend:
+`StripePaymentProvider` and `APNsSender` need real credentials; their protocols,
+call sites and fakes are complete.
+
 ## Documentation
 
 - [System architecture](docs/architecture.md)

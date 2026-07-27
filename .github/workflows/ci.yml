@@ -24,6 +24,10 @@ jobs:
         run: ruff check app tests
       - name: Tests
         run: pytest -q
+      - name: Migrations render for Postgres
+        run: alembic upgrade head --sql > /dev/null
+        env:
+          MATCHIT_DATABASE_URL: postgresql+asyncpg://matchit:matchit@localhost:5432/matchit
 
   ios:
     name: iOS — build
