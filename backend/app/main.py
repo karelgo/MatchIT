@@ -14,6 +14,7 @@ from app.api.v1 import (
     auth,
     chat,
     contracts,
+    devices,
     interviews,
     invoices,
     privacy,
@@ -32,6 +33,8 @@ from app.services.github import GitHubClient, build_github_client
 from app.services.intake import IntakeService
 from app.services.interview import InterviewService
 from app.services.matching import MatchingEngine
+from app.services.notifications import PushSender, build_push_sender
+from app.services.notifier import Notifier
 from app.services.payments import PaymentProvider, build_payment_provider
 from app.services.privacy import PrivacyService
 from app.services.pubsub import PubSub, build_pubsub
@@ -58,6 +61,7 @@ def create_app(
     github_client: GitHubClient | None = None,
     usage_counter: UsageCounter | None = None,
     payment_provider: PaymentProvider | None = None,
+    push_sender: PushSender | None = None,
     sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
@@ -98,7 +102,8 @@ def create_app(
     app.state.audit_service = AuditService()
     app.state.privacy_service = PrivacyService()
     app.state.rate_limiter = rate_limiter or build_rate_limiter(settings)
-    app.state.chat_service = ChatService(pubsub or build_pubsub(settings))
+    app.state.notifier = Notifier(push_sender or build_push_sender(settings))
+    app.state.chat_service = ChatService(pubsub or build_pubsub(settings), app.state.notifier)
     # WebSockets open their own short-lived sessions rather than holding a
     # request-scoped one for the socket's lifetime (see api/v1/chat.py).
     app.state.sessionmaker = sessionmaker or get_sessionmaker()
@@ -112,6 +117,7 @@ def create_app(
     app.include_router(contracts.router, prefix=api_prefix)
     app.include_router(privacy.router, prefix=api_prefix)
     app.include_router(invoices.router, prefix=api_prefix)
+    app.include_router(devices.router, prefix=api_prefix)
     app.include_router(admin.router, prefix=api_prefix)
 
     @app.get("/health", tags=["ops"])

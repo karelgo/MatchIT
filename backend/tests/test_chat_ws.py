@@ -44,6 +44,7 @@ def build_sync_client(tmp_path) -> TestClient:
         rate_limit_backend="memory",
         usage_counter_backend="memory",
         payment_provider="fake",
+        push_backend="fake",
         login_rate_limit=200,
     )
     app = create_app(

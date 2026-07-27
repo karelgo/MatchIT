@@ -30,9 +30,12 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - ✅ Real-time chat on mutual match (Iteration 3): a conversation opens
   automatically when both sides accept; REST history + WebSocket live delivery
   fanned out over `PubSub` (Redis in production), with the iOS Messages tab.
-- Team composition proposals from the concierge.
+- ✅ Push notifications (Iteration 11): device registration, and delivery on
+  mutual match, new message and contract signature. Delivery is best-effort by
+  construction — a failed push never fails the action that triggered it.
+- Team composition proposals from the concierge (the team builder exists; the
+  concierge does not yet offer it conversationally).
 - AI assistant in thread, code snippets & diagram attachments.
-- Push notifications (APNs): new matches, messages, availability requests.
 
 ## Epic 3 — Supply-side intelligence
 - ✅ CV parsing into the skill graph (Iteration 8): every extracted skill cites
@@ -105,12 +108,23 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   concierge, Apple Intelligence integration, AI-generated portfolios/CVs.
 
 ## Epic 10 — Scale-out
-- Kubernetes + Terraform (EKS/AKS), matching workers behind a queue, chat gateway
-  extraction, multi-region EU data residency, enterprise white-label.
+- ✅ Kubernetes manifests (Iteration 11): API deployment with an HPA, migrations
+  as a pre-upgrade Job rather than an init container (three replicas would race
+  three migrations), and a liveness probe that touches no dependency so a slow
+  database cannot cause a cluster-wide restart loop.
+- ✅ Terraform for the stateful tier: encrypted Postgres and Redis, both private,
+  with the region validated to be EU-only — MatchIT holds EU personal data, so a
+  `us-east-1` typo would be a transfer, not a deployment detail.
+- Matching workers behind a queue, chat gateway extraction, enterprise
+  white-label.
 
 ## Next up (recommended)
 
-**Epic 10 — scale-out, and Epic 2's push notifications.** The product loop is
-now complete end to end. What is missing is operational: Terraform/Kubernetes
-manifests, matching workers behind a queue, and APNs so a specialist learns
-about a match without opening the app.
+**Close the two adapters that are stubbed.** `StripePaymentProvider` and
+`APNsSender` both raise rather than pretend: the protocols, the call sites and
+the tests around them are complete, but neither has been wired to a real
+credential. That is the shortest path from "works end to end in tests" to "works
+end to end in production", and it needs accounts, not architecture.
+
+After that: Epic 9 (widgets, Live Activities, voice-first concierge) and the
+remaining Epic 3 adapters (PDF→text, certification validation).

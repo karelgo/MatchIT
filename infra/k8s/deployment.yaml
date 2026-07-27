@@ -1,0 +1,95 @@
+# API deployment. Stateless by construction (JWT auth, Redis-shared rate limits
+# and pub/sub), so replicas scale horizontally with no session affinity.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchit-api
+  labels: { app: matchit-api }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: matchit-api }
+  template:
+    metadata:
+      labels: { app: matchit-api }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: api
+          image: ghcr.io/karelgo/matchit-api:latest
+          ports: [{ containerPort: 8000 }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          envFrom:
+            - secretRef: { name: matchit-secrets }
+            - configMapRef: { name: matchit-config }
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+          # /health touches no dependency, so a slow database degrades requests
+          # rather than causing Kubernetes to restart every healthy pod.
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchit-api
+spec:
+  selector: { app: matchit-api }
+  ports: [{ port: 80, targetPort: 8000 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: matchit-api
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: matchit-api }
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
+---
+# Migrations run once per release, before the new image serves traffic.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: matchit-migrate
+  annotations: { "helm.sh/hook": pre-upgrade }
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: alembic
+          image: ghcr.io/karelgo/matchit-api:latest
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - secretRef: { name: matchit-secrets }
+            - configMapRef: { name: matchit-config }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matchit-config
+data:
+  MATCHIT_ENVIRONMENT: production
+  MATCHIT_LLM_PROVIDER: anthropic
+  MATCHIT_VECTOR_BACKEND: qdrant
+  MATCHIT_PUBSUB_BACKEND: redis
+  MATCHIT_RATE_LIMIT_BACKEND: redis
+  MATCHIT_USAGE_COUNTER_BACKEND: redis
+  MATCHIT_PAYMENT_PROVIDER: stripe
+  MATCHIT_PUSH_BACKEND: apns

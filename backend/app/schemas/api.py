@@ -357,6 +357,10 @@ class ContractResponse(BaseModel):
     created_at: UTCDatetime
 
 
+class DeviceRegisterRequest(BaseModel):
+    token: NonBlankStr = Field(min_length=8, max_length=200)
+
+
 # ---- invoices ----
 
 

@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     pubsub_backend: str = "redis"  # redis | memory
     rate_limit_backend: str = "redis"  # redis | memory | off
     usage_counter_backend: str = "redis"  # redis | memory
+    push_backend: str = "apns"  # apns | fake | off
+    apns_key_id: str = ""
+    apns_team_id: str = ""
+    apns_bundle_id: str = "com.matchit.app"
+    apns_private_key: str = ""
     payment_provider: str = "stripe"  # stripe | fake
     stripe_api_key: str = ""
     platform_commission_percent: float = 12.0

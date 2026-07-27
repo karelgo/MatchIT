@@ -15,6 +15,7 @@ from app.db.session import get_db
 from app.main import create_app
 from app.services.apple import AppleIdentity
 from app.services.github import FakeGitHubClient, Repository
+from app.services.notifications import FakePushSender
 from app.services.payments import FakePaymentProvider
 from app.services.pubsub import InMemoryPubSub
 from app.services.ratelimit import InMemoryRateLimiter
@@ -60,6 +61,7 @@ def test_settings() -> Settings:
         rate_limit_backend="memory",
         usage_counter_backend="memory",
         payment_provider="fake",
+        push_backend="fake",
         login_rate_limit=50,
         database_url="sqlite+aiosqlite://",
     )
@@ -73,6 +75,11 @@ def fake_chat() -> FakeChatModel:
 @pytest.fixture
 def vector_index() -> InMemoryVectorIndex:
     return InMemoryVectorIndex()
+
+
+@pytest.fixture
+def push_sender() -> FakePushSender:
+    return FakePushSender()
 
 
 @pytest.fixture
@@ -124,7 +131,7 @@ def github_client() -> FakeGitHubClient:
 
 @pytest.fixture
 async def client(
-    test_settings, fake_chat, vector_index, github_client, payment_provider
+    test_settings, fake_chat, vector_index, github_client, payment_provider, push_sender
 ) -> AsyncIterator[AsyncClient]:
     engine = create_async_engine("sqlite+aiosqlite://")
     enable_sqlite_foreign_keys(engine)
@@ -143,6 +150,7 @@ async def client(
         github_client=github_client,
         usage_counter=InMemoryUsageCounter(),
         payment_provider=payment_provider,
+        push_sender=push_sender,
         sessionmaker=sessionmaker,
     )
 

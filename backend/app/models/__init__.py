@@ -2,6 +2,7 @@ from app.models.assignment import Assignment, AssignmentStatus, Decision, Match,
 from app.models.audit import AuditAction, AuditLog
 from app.models.chat import Conversation, Message
 from app.models.contract import Contract, ContractStatus
+from app.models.device import DevicePlatform, DeviceToken
 from app.models.interview import Interview, InterviewStatus
 from app.models.invoice import Invoice, InvoiceStatus
 from app.models.profiles import CompanyProfile, RemotePreference, SpecialistProfile
@@ -23,6 +24,8 @@ __all__ = [
     "Contract",
     "ContractStatus",
     "Conversation",
+    "DevicePlatform",
+    "DeviceToken",
     "Decision",
     "Interview",
     "InterviewStatus",

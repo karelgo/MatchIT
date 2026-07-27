@@ -109,7 +109,9 @@ async def get_contract(match_id: uuid.UUID, user: CurrentUser, db: DbSession):
 
 
 @router.post("/matches/{match_id}/contract/sign", response_model=ContractResponse)
-async def sign_contract(match_id: uuid.UUID, user: CurrentUser, db: DbSession):
+async def sign_contract(
+    match_id: uuid.UUID, user: CurrentUser, db: DbSession, request: Request
+):
     """Record this party's signature; the second signature activates the contract."""
     match = await load_match(db, match_id)
     viewer = viewer_role(match, user)
@@ -132,4 +134,11 @@ async def sign_contract(match_id: uuid.UUID, user: CurrentUser, db: DbSession):
     if contract.is_fully_signed:
         contract.status = ContractStatus.ACTIVE
     await db.commit()
+
+    counterparty = (
+        match.assignment.company.user_id if viewer == "specialist" else match.specialist.user_id
+    )
+    await request.app.state.notifier.contract_signed(
+        db, counterparty, match_id=match_id, is_active=contract.is_fully_signed
+    )
     return _to_response(contract, viewer)

@@ -283,4 +283,21 @@ async def decide_match(
         # a mutual match opens the chat thread
         await request.app.state.chat_service.ensure_conversation(db, match.id)
     await db.commit()
+
+    if match.status == MatchStatus.MUTUAL:
+        notifier = request.app.state.notifier
+        assignment = await db.get(Assignment, match.assignment_id)
+        company_profile = await db.get(CompanyProfile, assignment.company_id)
+        await notifier.mutual_match(
+            db,
+            specialist.user_id,
+            counterpart=company_profile.name,
+            match_id=match.id,
+        )
+        await notifier.mutual_match(
+            db,
+            company_profile.user_id,
+            counterpart=specialist.headline,
+            match_id=match.id,
+        )
     return match

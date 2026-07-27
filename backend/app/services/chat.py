@@ -49,8 +49,9 @@ def _assignment_title(conversation: Conversation) -> str:
 
 
 class ChatService:
-    def __init__(self, pubsub: PubSub):
+    def __init__(self, pubsub: PubSub, notifier=None):
         self.pubsub = pubsub
+        self.notifier = notifier
 
     @staticmethod
     def channel(conversation_id: uuid.UUID) -> str:
@@ -143,6 +144,18 @@ class ChatService:
         await db.commit()
         response = self._message_response(message, sender)
         await self.pubsub.publish(self.channel(conversation.id), response.model_dump_json())
+        if self.notifier is not None:
+            specialist_user_id, company_user_id = _parties(conversation)
+            recipient = (
+                company_user_id if sender.id == specialist_user_id else specialist_user_id
+            )
+            await self.notifier.new_message(
+                db,
+                recipient,
+                sender_name=sender.full_name,
+                preview=message.content,
+                conversation_id=conversation.id,
+            )
         return response
 
     @staticmethod

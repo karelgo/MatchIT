@@ -92,3 +92,5 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
    per-feature AI usage, user suspension and audit search.
 10. **Payments** — escrow-backed invoicing with EU VAT (domestic, reverse-charge,
     out-of-scope) and platform commission, in exact decimal arithmetic.
+11. **Push notifications & infrastructure** — device registration and delivery on
+    match/message/signature; Kubernetes manifests and EU-pinned Terraform.
