@@ -46,9 +46,11 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - ✅ Skill provenance: every skill records its source (self_reported, cv,
   github, certification, interview). Merging is rank-ordered, so re-reading a CV
   never downgrades an interview-verified skill and enrichment never deletes.
-- PDF→text extraction (a thin adapter in front of the CV endpoint, which already
-  takes text), certification validation against issuer APIs, video-intro
-  transcription.
+- ✅ PDF CV upload (Iteration 12): text extraction with distinct, actionable
+  errors for the three real failure modes — not a PDF, password-protected, and
+  the common one, a scanned CV with no text layer. No model call is paid for an
+  unreadable file. iOS gains an Import section (PDF picker + GitHub username).
+- Certification validation against issuer APIs, video-intro transcription.
 - Identity verification flow; remaining trust score factors go evidence-based.
 
 ## Epic 4 — Matching v2
@@ -123,8 +125,6 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 **Close the two adapters that are stubbed.** `StripePaymentProvider` and
 `APNsSender` both raise rather than pretend: the protocols, the call sites and
 the tests around them are complete, but neither has been wired to a real
-credential. That is the shortest path from "works end to end in tests" to "works
-end to end in production", and it needs accounts, not architecture.
-
-After that: Epic 9 (widgets, Live Activities, voice-first concierge) and the
-remaining Epic 3 adapters (PDF→text, certification validation).
+credential. That needs accounts, not architecture. After that: a macOS
+verification pass on the iOS project so the CI job can become a merge gate,
+then Epic 9 (widgets, Live Activities, voice-first concierge).

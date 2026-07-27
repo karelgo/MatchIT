@@ -1,7 +1,9 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @State private var model: ProfileViewModel
+    @State private var showingCVPicker = false
 
     init(api: APIClient, user: User, onSignOut: @escaping () -> Void) {
         _model = State(initialValue: ProfileViewModel(api: api, user: user, onSignOut: onSignOut))
@@ -52,6 +54,38 @@ struct ProfileView: View {
                     }
                 }
 
+                Section {
+                    Button {
+                        showingCVPicker = true
+                    } label: {
+                        Label("Import CV (PDF)", systemImage: "doc.badge.arrow.up")
+                    }
+                    .disabled(model.isImporting)
+                    HStack {
+                        TextField("GitHub username", text: $model.githubUsername)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button("Analyse") { Task { await model.importGitHub() } }
+                            .disabled(model.githubUsername.isEmpty || model.isImporting)
+                    }
+                    if model.isImporting {
+                        Label("The AI is reading the evidence…", systemImage: "sparkles")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if let summary = model.importSummary {
+                        Label(summary, systemImage: "checkmark.seal.fill")
+                            .font(.caption)
+                            .foregroundStyle(Theme.success)
+                    }
+                } header: {
+                    Text("Import evidence")
+                } footer: {
+                    Text(
+                        "Skills read from a CV or your public repositories carry a citation and outrank self-reported ones."
+                    )
+                }
+
                 Section("Engagement") {
                     HStack {
                         Text("Hourly rate")
@@ -92,6 +126,23 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle(model.user.fullName)
+            .fileImporter(
+                isPresented: $showingCVPicker,
+                allowedContentTypes: [.pdf]
+            ) { result in
+                guard case let .success(url) = result else { return }
+                Task {
+                    // Security-scoped: files picked from outside the sandbox
+                    // are unreadable without this bracket.
+                    let scoped = url.startAccessingSecurityScopedResource()
+                    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                    guard let data = try? Data(contentsOf: url) else {
+                        model.errorMessage = "Could not read that file."
+                        return
+                    }
+                    await model.importCV(pdfData: data, filename: url.lastPathComponent)
+                }
+            }
             .task { await model.load() }
             .sensoryFeedback(.success, trigger: model.savedBanner)
             .alert("Profile saved", isPresented: $model.savedBanner) {

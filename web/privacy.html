@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MatchIT — Privacy Policy (draft)</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           max-width: 720px; margin: 0 auto; padding: 40px 24px; line-height: 1.65; color: #16181D; }
+    @media (prefers-color-scheme: dark) { body { color: #F2F3F7; background: #101216; } }
+    h1 { letter-spacing: -0.02em; } h2 { margin-top: 2em; letter-spacing: -0.01em; }
+    .draft { background: #FFF3CD; color: #664D03; padding: 12px 16px; border-radius: 10px; font-size: 0.9rem; }
+    @media (prefers-color-scheme: dark) { .draft { background: #3A2F0B; color: #FFDA6A; } }
+    a { color: #4A54F1; }
+  </style>
+</head>
+<body>
+  <p><a href="index.html">← MatchIT</a></p>
+  <h1>Privacy Policy</h1>
+  <p class="draft"><strong>Draft.</strong> This policy describes the product accurately but has
+  not yet been reviewed by counsel and is not in force. It must be reviewed before launch,
+  and the data controller's legal identity and contact details completed.</p>
+
+  <p><em>Last updated: 27 July 2026 · Controller: MatchIT B.V. (in formation), Netherlands</em></p>
+
+  <h2>What we collect</h2>
+  <p>Only what the service needs to work:</p>
+  <ul>
+    <li><strong>Account</strong> — name, email, role, and a password hash (Argon2id) or your
+        Apple ID's stable identifier if you sign in with Apple. We never see your Apple password.</li>
+    <li><strong>Specialist profiles</strong> — the skills, rates, availability, languages,
+        location and links you provide; and, if you choose to import them, the text of your CV
+        and an analysis of your public GitHub repositories.</li>
+    <li><strong>Assignments and matches</strong> — problem descriptions, the AI-structured
+        assignment, match scores and their reasoning.</li>
+    <li><strong>Interviews, messages and contracts</strong> — AI interview transcripts and
+        assessments, chat messages, contract terms and signature timestamps, invoices.</li>
+    <li><strong>Security records</strong> — an append-only log of security-relevant actions
+        (sign-ins, exports, deletions) with the IP address they came from.</li>
+  </ul>
+  <p>We deliberately do not collect or extract age, gender, nationality, health or similar
+  characteristics — even when a CV states them — because they cannot lawfully inform a hiring
+  decision and have no place in a skill graph.</p>
+
+  <h2>How AI processes your data</h2>
+  <p>AI is the core of MatchIT. Profile and assignment content is sent to large-language-model
+  providers (Anthropic and/or OpenAI, configurable per deployment) to structure assignments,
+  rank matches, conduct screening interviews and draft contracts. Before prompting, profiles
+  are projected down to the fields the task needs — the interviewing model, for example, never
+  receives your name, contact details, location or rate. Match rankings and interview scores
+  always come with their reasoning, and AI-estimated figures (such as budgets) are flagged as
+  estimates.</p>
+
+  <h2>Legal bases</h2>
+  <ul>
+    <li><strong>Contract</strong> (Art. 6(1)(b) GDPR) — running your account, matching,
+        interviews, contracts and payments.</li>
+    <li><strong>Legitimate interest</strong> (Art. 6(1)(f)) — security logging, rate limiting
+        and fraud prevention.</li>
+    <li><strong>Consent</strong> (Art. 6(1)(a)) — importing your CV or GitHub profile, and push
+        notifications; both are opt-in actions you take explicitly.</li>
+  </ul>
+
+  <h2>Sharing</h2>
+  <p>Your profile is shown to companies whose assignments you match, and their assignments to
+  you — that is the service. Interview assessments are shared asymmetrically by design: the
+  hiring manager sees the full assessment including concerns and a recommendation; you see
+  your score, strengths and development areas. Processors: our cloud infrastructure (EU
+  regions only), LLM providers as above, and — when payments launch — Stripe. We do not sell
+  personal data.</p>
+
+  <h2>Your rights</h2>
+  <p>Export and erasure are built into the product, not a support ticket: <em>Download my
+  data</em> returns everything we hold about you as portable JSON (Arts. 15/20), and
+  <em>Delete my account</em> erases it (Art. 17). Erasure is refused only while a signed
+  contract is in force (Art. 17(3)), because an active engagement is a live obligation on both
+  parties; complete or cancel it first. Security-log entries survive erasure with your
+  identifier removed. You can also complain to the Autoriteit Persoonsgegevens.</p>
+
+  <h2>Retention & security</h2>
+  <p>Data is kept while your account exists and deleted with it, except invoices (statutory
+  retention) and the anonymised security log. All data is stored in EU regions, encrypted in
+  transit and at rest. Access tokens live 15 minutes; refresh tokens rotate on every use and
+  are stored only as hashes.</p>
+
+  <h2>Contact</h2>
+  <p><a href="mailto:privacy@matchit.example">privacy@matchit.example</a></p>
+</body>
+</html>

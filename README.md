@@ -22,6 +22,7 @@ Company describes problem → AI Concierge extracts a structured assignment
 | `ios/` | Native SwiftUI app (Swift 6, MVVM + `@Observable`, iOS 17+) |
 | `docs/` | Architecture, AI architecture, data model, roadmap (epics & stories) |
 | `infra/` | docker-compose for local development (Postgres, Redis, Qdrant) |
+| `web/` | Landing page, privacy policy and terms (static, self-contained) |
 | `.github/workflows/` | CI: backend lint + tests, iOS build |
 
 ## Quickstart (backend)
@@ -59,7 +60,7 @@ Point the app at a running backend via the `API_BASE_URL` setting in
 
 ## What is verified, and what is not
 
-The backend is covered by **131 offline tests** (SQLite plus deterministic AI
+The backend is covered by **140 offline tests** (SQLite plus deterministic AI
 fakes — no API keys, no network). Two of those tests guard risks the rest of the
 suite structurally cannot see:
 
@@ -87,7 +88,7 @@ call sites and fakes are complete.
 
 ## Status
 
-Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
+Twelve iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
 
 1. **Foundation** — auth (JWT + Apple), profiles, AI assignment intake, explainable
    matching engine, trust score, vector search, infrastructure and CI.
@@ -115,3 +116,6 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
     out-of-scope) and platform commission, in exact decimal arithmetic.
 11. **Push notifications & infrastructure** — device registration and delivery on
     match/message/signature; Kubernetes manifests and EU-pinned Terraform.
+12. **PDF CV upload & launch collateral** — CV import from PDF with honest
+    failure messages; landing page, privacy/terms drafts, pitch deck, brand and
+    App Store listing.

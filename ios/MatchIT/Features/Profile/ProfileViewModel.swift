@@ -8,10 +8,13 @@ final class ProfileViewModel {
     var trustScore: Double?
     var newSkillName = ""
     var newSkillLevel = 7
+    var githubUsername = ""
     var isBusy = false
+    var isImporting = false
     var isLoaded = false
     var errorMessage: String?
     var savedBanner = false
+    var importSummary: String?
 
     let api: APIClient
     let user: User
@@ -72,6 +75,44 @@ final class ProfileViewModel {
             let profile = try await api.upsertSpecialistProfile(draft)
             trustScore = profile.trustScore
             savedBanner = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Applies an enrichment result to the on-screen draft, so the imported
+    /// skills and their evidence are visible without a reload.
+    private func apply(_ result: EnrichmentResult) {
+        draft.headline = result.profile.headline
+        draft.bio = result.profile.bio
+        draft.skills = result.profile.skills
+        draft.languages = result.profile.languages
+        draft.certifications = result.profile.certifications
+        draft.yearsExperience = result.profile.yearsExperience
+        trustScore = result.profile.trustScore
+        importSummary =
+            "\(result.skillsAdded) skills added, \(result.skillsUpdated) confirmed with evidence."
+    }
+
+    func importCV(pdfData: Data, filename: String) async {
+        isImporting = true
+        errorMessage = nil
+        defer { isImporting = false }
+        do {
+            apply(try await api.uploadCV(pdfData: pdfData, filename: filename))
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func importGitHub() async {
+        let username = githubUsername.trimmingCharacters(in: .whitespaces)
+        guard !username.isEmpty else { return }
+        isImporting = true
+        errorMessage = nil
+        defer { isImporting = false }
+        do {
+            apply(try await api.enrichFromGitHub(username: username))
         } catch {
             errorMessage = error.localizedDescription
         }

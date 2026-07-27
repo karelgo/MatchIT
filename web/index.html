@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MatchIT — Hire IT specialists in minutes, not weeks</title>
+  <meta name="description"
+        content="MatchIT is the AI staffing platform. Describe your problem; AI writes the assignment, finds and interviews specialists, and drafts the contract.">
+  <style>
+    :root {
+      --accent: #4A54F1;
+      --accent-soft: rgba(74, 84, 241, 0.10);
+      --ink: #16181D;
+      --ink-soft: #5A5F6B;
+      --surface: #FFFFFF;
+      --surface-alt: #F5F6F9;
+      --success: #29A86E;
+      --radius: 20px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #F2F3F7;
+        --ink-soft: #A3A8B5;
+        --surface: #101216;
+        --surface-alt: #191C22;
+        --accent-soft: rgba(112, 122, 255, 0.16);
+      }
+    }
+    * { margin: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: var(--surface);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+    header { padding: 28px 0; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-weight: 800; font-size: 1.35rem; letter-spacing: -0.02em; }
+    .logo span { color: var(--accent); }
+    .cta {
+      display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+      padding: 12px 22px; border-radius: 14px; font-weight: 600;
+    }
+    .cta.ghost { background: var(--accent-soft); color: var(--accent); }
+    .hero { padding: 72px 0 56px; text-align: center; }
+    .hero h1 {
+      font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; letter-spacing: -0.03em;
+      line-height: 1.12; max-width: 22ch; margin: 0 auto 20px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p { color: var(--ink-soft); max-width: 52ch; margin: 0 auto 32px; font-size: 1.12rem; }
+    .loop {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+      padding: 48px 0; color: var(--ink-soft); font-size: 0.95rem;
+    }
+    .loop b { color: var(--ink); font-weight: 600; }
+    .loop .arrow { color: var(--accent); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; padding: 40px 0 72px; }
+    .card { background: var(--surface-alt); border-radius: var(--radius); padding: 26px; }
+    .card h3 { font-size: 1.06rem; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .card p { color: var(--ink-soft); font-size: 0.95rem; }
+    .card .chip {
+      display: inline-block; background: var(--accent-soft); color: var(--accent);
+      font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-bottom: 14px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .strip { background: var(--surface-alt); padding: 56px 0; text-align: center; }
+    .strip h2 { font-size: 1.6rem; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .strip p { color: var(--ink-soft); max-width: 60ch; margin: 0 auto; }
+    footer { padding: 44px 0 60px; color: var(--ink-soft); font-size: 0.85rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; }
+    footer a { color: var(--ink-soft); }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <div class="logo">Match<span>IT</span></div>
+    <a class="cta ghost" href="#waitlist">Join the waitlist</a>
+  </header>
+
+  <section class="hero wrap">
+    <h1>Hire IT specialists in <em>minutes</em>, not weeks.</h1>
+    <p>
+      Describe your problem in plain language. The AI writes the assignment, finds the
+      right specialists, interviews them on exactly what their profile leaves unproven,
+      and drafts the contract. You approve; work starts.
+    </p>
+    <a class="cta" href="#waitlist">Join the waitlist</a>
+  </section>
+
+  <div class="loop wrap" aria-label="How MatchIT works">
+    <b>Describe the problem</b> <span class="arrow">→</span>
+    <b>AI writes the assignment</b> <span class="arrow">→</span>
+    <b>Ranked, evidence-backed matches</b> <span class="arrow">→</span>
+    <b>AI interview</b> <span class="arrow">→</span>
+    <b>Contract &amp; escrow</b>
+  </div>
+
+  <section class="grid wrap">
+    <div class="card">
+      <span class="chip">No forms</span>
+      <h3>Talk, don't filter</h3>
+      <p>“We need two Microsoft Fabric architects to migrate our warehouse within six
+         months.” That sentence is the whole intake. The concierge asks the two or three
+         questions a good recruiter would, and the assignment converges — with any
+         AI-estimated budget clearly flagged as an estimate.</p>
+    </div>
+    <div class="card">
+      <span class="chip">Explainable</span>
+      <h3>Every rank has a reason</h3>
+      <p>Matches are scored on skills, semantics, rate, availability, location and
+         language — and the breakdown ships with every match. You see <i>why</i> someone
+         is first, not just that they are.</p>
+    </div>
+    <div class="card">
+      <span class="chip">Evidence</span>
+      <h3>Skills with citations</h3>
+      <p>CVs and public GitHub work are read into the skill graph, and every skill
+         carries the project that proves it. The AI interview then probes exactly what
+         the profile leaves unproven.</p>
+    </div>
+    <div class="card">
+      <span class="chip">Teams</span>
+      <h3>Whole teams, seat by seat</h3>
+      <p>Multi-role assignments are filled role by role — nobody is counted twice, and
+         an open seat is reported honestly rather than padded with a near-miss.</p>
+    </div>
+    <div class="card">
+      <span class="chip">Trust</span>
+      <h3>Contract to payment, inside</h3>
+      <p>The engagement contract is drafted from the terms you agreed — never invented —
+         signed in-app, and invoiced through escrow with EU VAT handled correctly.</p>
+    </div>
+    <div class="card">
+      <span class="chip">EU-first</span>
+      <h3>Built for Europe</h3>
+      <p>GDPR export and erasure built in from day one, EU-pinned infrastructure, and
+         interview questions constrained to what can lawfully inform a hiring decision.</p>
+    </div>
+  </section>
+
+  <section class="strip" id="waitlist">
+    <div class="wrap">
+      <h2>Launching first in the Netherlands</h2>
+      <p>
+        MatchIT is in private beta with a small group of companies and specialists.
+        Write to <a href="mailto:hello@matchit.example">hello@matchit.example</a> to
+        join the waitlist — say whether you're hiring or available.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div>© 2026 MatchIT. All rights reserved.</div>
+      <div>
+        <a href="privacy.html">Privacy</a> ·
+        <a href="terms.html">Terms</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -142,6 +142,38 @@ actor APIClient {
         try await post("specialists/me/enrich/github", body: ["username": username])
     }
 
+    func uploadCV(pdfData: Data, filename: String) async throws -> EnrichmentResult {
+        let boundary = "matchit-\(UUID().uuidString)"
+        var body = Data()
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(
+            Data(
+                "Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".utf8
+            )
+        )
+        body.append(Data("Content-Type: application/pdf\r\n\r\n".utf8))
+        body.append(pdfData)
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+
+        var urlRequest = URLRequest(url: baseURL.appending(path: "specialists/me/enrich/cv-file"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.httpBody = body
+        urlRequest.setValue(
+            "multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type"
+        )
+        if let access = tokens?.accessToken {
+            urlRequest.setValue("Bearer \(access)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await session.data(for: urlRequest)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200 ..< 300).contains(status) else {
+            struct ServerError: Decodable { let detail: String? }
+            let detail = (try? decoder.decode(ServerError.self, from: data))?.detail
+            throw APIError.server(status: status, message: detail ?? "Upload failed (\(status)).")
+        }
+        return try decoder.decode(EnrichmentResult.self, from: data)
+    }
+
     // MARK: - Privacy (GDPR)
 
     /// Returns the export as pretty-printed JSON text — the shape is deliberately

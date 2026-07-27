@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from sqlalchemy import select
 
 from app.ai.schemas import SkillSource
@@ -22,6 +22,7 @@ from app.schemas.api import (
     SpecialistProfileResponse,
     UserResponse,
 )
+from app.services.cvfile import MAX_PDF_BYTES, CVFileError, extract_pdf_text
 from app.services.enrichment import EnrichmentService, NothingToAnalyse, merge_skills
 from app.services.github import GitHubUnavailable
 from app.services.matching import MatchingEngine
@@ -92,17 +93,16 @@ def _enrichment_result(
     }
 
 
-@router.post("/specialists/me/enrich/cv", response_model=EnrichmentResponse)
-async def enrich_from_cv(
-    body: CVEnrichmentRequest,
-    profile: CurrentSpecialistProfile,
-    db: DbSession,
-    engine: MatchingEngineDep,
+async def _enrich_profile_from_cv_text(
+    cv_text: str,
+    profile: SpecialistProfile,
+    db,
+    engine: MatchingEngine,
     request: Request,
-):
-    """Read a CV into the skill graph, citing evidence for every skill."""
+) -> dict:
+    """Shared by the paste-text and PDF-upload endpoints."""
     enrichment: EnrichmentService = request.app.state.enrichment_service
-    extraction = await enrichment.from_cv(body.cv_text)
+    extraction = await enrichment.from_cv(cv_text)
 
     before = list(profile.skills)
     profile.skills = merge_skills(before, extraction.skills, SkillSource.CV)
@@ -117,6 +117,35 @@ async def enrich_from_cv(
     await engine.index_specialist(profile)
     await db.commit()
     return _enrichment_result(profile, before, SkillSource.CV.value, extraction.summary)
+
+
+@router.post("/specialists/me/enrich/cv", response_model=EnrichmentResponse)
+async def enrich_from_cv(
+    body: CVEnrichmentRequest,
+    profile: CurrentSpecialistProfile,
+    db: DbSession,
+    engine: MatchingEngineDep,
+    request: Request,
+):
+    """Read a CV into the skill graph, citing evidence for every skill."""
+    return await _enrich_profile_from_cv_text(body.cv_text, profile, db, engine, request)
+
+
+@router.post("/specialists/me/enrich/cv-file", response_model=EnrichmentResponse)
+async def enrich_from_cv_file(
+    profile: CurrentSpecialistProfile,
+    db: DbSession,
+    engine: MatchingEngineDep,
+    request: Request,
+    file: UploadFile,
+):
+    """Upload a CV as a PDF. Text is extracted here; the same enrichment runs."""
+    data = await file.read(MAX_PDF_BYTES + 1)
+    try:
+        cv_text = extract_pdf_text(data)
+    except CVFileError as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error)) from error
+    return await _enrich_profile_from_cv_text(cv_text, profile, db, engine, request)
 
 
 @router.post("/specialists/me/enrich/github", response_model=EnrichmentResponse)
