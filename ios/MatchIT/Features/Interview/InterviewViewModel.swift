@@ -22,6 +22,7 @@ final class InterviewViewModel {
     var errorMessage: String?
 
     private let api: APIClient
+    private let liveActivity = InterviewActivityController()
 
     init(api: APIClient, matchId: UUID, viewer: Viewer) {
         self.api = api
@@ -39,8 +40,30 @@ final class InterviewViewModel {
         do {
             interview = try await api.interview(matchId: matchId)
             errorMessage = nil
+            syncLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// The Live Activity mirrors the specialist's in-progress interview; the
+    /// company never gets one, and a finished interview ends it.
+    private func syncLiveActivity() {
+        guard viewer == .specialist, let interview else { return }
+        if interview.isComplete {
+            liveActivity.end(answered: interview.answeredCount, total: interview.totalQuestions)
+        } else if let question = interview.currentQuestion {
+            liveActivity.start(
+                title: "AI screening interview",
+                answered: interview.answeredCount,
+                total: interview.totalQuestions,
+                skill: question.skill
+            )
+            liveActivity.update(
+                answered: interview.answeredCount,
+                total: interview.totalQuestions,
+                skill: question.skill
+            )
         }
     }
 
@@ -50,6 +73,7 @@ final class InterviewViewModel {
         do {
             interview = try await api.startInterview(matchId: matchId)
             errorMessage = nil
+            syncLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -64,6 +88,7 @@ final class InterviewViewModel {
             interview = try await api.answerInterview(matchId: matchId, answer: answer)
             draft = ""
             errorMessage = nil
+            syncLiveActivity()
         } catch {
             errorMessage = error.localizedDescription
         }

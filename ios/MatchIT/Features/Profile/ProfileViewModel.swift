@@ -15,6 +15,7 @@ final class ProfileViewModel {
     var errorMessage: String?
     var savedBanner = false
     var importSummary: String?
+    var generatedCV: GeneratedCV?
 
     let api: APIClient
     let user: User
@@ -100,6 +101,17 @@ final class ProfileViewModel {
         defer { isImporting = false }
         do {
             apply(try await api.uploadCV(pdfData: pdfData, filename: filename))
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func generateCV() async {
+        isImporting = true
+        errorMessage = nil
+        defer { isImporting = false }
+        do {
+            generatedCV = try await api.generateCV()
         } catch {
             errorMessage = error.localizedDescription
         }

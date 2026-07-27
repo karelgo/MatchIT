@@ -15,13 +15,29 @@ targets:
   MatchIT:
     type: application
     platform: iOS
-    sources: [MatchIT]
+    # Shared/ is compiled into both the app and the widget extension: the
+    # Live Activity attributes and widget snapshot must be one definition.
+    sources: [MatchIT, Shared]
+    dependencies:
+      - target: MatchITWidgets
+        embed: true
+    entitlements:
+      path: MatchIT/Support/MatchIT.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.matchit.app
     info:
       path: MatchIT/Support/Info.plist
       properties:
         CFBundleDisplayName: MatchIT
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSSupportsLiveActivities: true
+        NSSpeechRecognitionUsageDescription: >-
+          MatchIT transcribes your voice so you can describe your hiring problem
+          by speaking instead of typing.
+        NSMicrophoneUsageDescription: >-
+          The microphone is used only while you dictate to the AI concierge.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     settings:
@@ -29,3 +45,25 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.matchit.app
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
+
+  MatchITWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets, Shared]
+    entitlements:
+      path: Widgets/MatchITWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.matchit.app
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: MatchIT Widgets
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.matchit.app.widgets
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        SKIP_INSTALL: YES

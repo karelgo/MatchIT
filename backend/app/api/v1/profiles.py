@@ -16,13 +16,16 @@ from app.schemas.api import (
     CompanyProfileRequest,
     CompanyProfileResponse,
     CVEnrichmentRequest,
+    CVSectionView,
     EnrichmentResponse,
+    GeneratedCVResponse,
     GitHubEnrichmentRequest,
     SpecialistProfileRequest,
     SpecialistProfileResponse,
     UserResponse,
 )
 from app.services.cvfile import MAX_PDF_BYTES, CVFileError, extract_pdf_text
+from app.services.cvgen import CVGeneratorService, render_markdown
 from app.services.enrichment import EnrichmentService, NothingToAnalyse, merge_skills
 from app.services.github import GitHubUnavailable
 from app.services.matching import MatchingEngine
@@ -146,6 +149,23 @@ async def enrich_from_cv_file(
     except CVFileError as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error)) from error
     return await _enrich_profile_from_cv_text(cv_text, profile, db, engine, request)
+
+
+@router.post("/specialists/me/generated-cv", response_model=GeneratedCVResponse)
+async def generate_cv(
+    user: CurrentUser,
+    profile: CurrentSpecialistProfile,
+    request: Request,
+):
+    """Write a CV from the profile's evidence — a read, not a mutation."""
+    generator: CVGeneratorService = request.app.state.cv_generator
+    cv = await generator.generate(user, profile)
+    return GeneratedCVResponse(
+        headline=cv.headline,
+        summary=cv.summary,
+        sections=[CVSectionView(heading=s.heading, bullets=s.bullets) for s in cv.sections],
+        markdown=render_markdown(user.full_name, cv),
+    )
 
 
 @router.post("/specialists/me/enrich/github", response_model=EnrichmentResponse)

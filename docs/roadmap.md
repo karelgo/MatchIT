@@ -106,8 +106,23 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - SOC2 controls, anomaly detection, admin-facing audit search.
 
 ## Epic 9 — Delight
-- Widgets & Live Activities (interview countdowns, match alerts), voice-first
-  concierge, Apple Intelligence integration, AI-generated portfolios/CVs.
+- ✅ Home-screen widget (Iteration 13): opportunity count and top match, small
+  and medium families. Widgets don't authenticate — the app writes a snapshot
+  to the App Group store and reloads timelines, so the widget never touches the
+  network.
+- ✅ Interview Live Activity: lock-screen and Dynamic Island progress while a
+  screening interview is in flight, specialist-side only, ended on completion.
+  Best-effort by construction — a missing island never affects the interview.
+- ✅ Voice-first concierge: live dictation streams into the problem description
+  (SFSpeechRecognizer), appending to whatever was typed.
+- ✅ AI-generated CV: written from the evidence-backed skill graph only — the
+  prompt forbids inventing employers, dates or outcomes, and a thin profile
+  yields a short CV by design. The model returns structure; the document is
+  rendered deterministically server-side. Shareable from the profile.
+- ✅ App Intents: "Show my MatchIT opportunities/messages" for Siri, Shortcuts
+  and Spotlight.
+- Apple Intelligence integration beyond App Intents; interview-countdown
+  Live Activity for *scheduled* (video) interviews once those exist.
 
 ## Epic 10 — Scale-out
 - ✅ Kubernetes manifests (Iteration 11): API deployment with an HPA, migrations
@@ -126,5 +141,6 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 `APNsSender` both raise rather than pretend: the protocols, the call sites and
 the tests around them are complete, but neither has been wired to a real
 credential. That needs accounts, not architecture. After that: a macOS
-verification pass on the iOS project so the CI job can become a merge gate,
-then Epic 9 (widgets, Live Activities, voice-first concierge).
+verification pass on the iOS project (now two targets: app + widget extension)
+so the CI job can become a merge gate. The roadmap's remaining items are
+adapters and extensions of shipped systems, not new systems.

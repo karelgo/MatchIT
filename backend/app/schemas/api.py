@@ -357,6 +357,18 @@ class ContractResponse(BaseModel):
     created_at: UTCDatetime
 
 
+class CVSectionView(BaseModel):
+    heading: str
+    bullets: list[str]
+
+
+class GeneratedCVResponse(BaseModel):
+    headline: str
+    summary: str
+    sections: list[CVSectionView]
+    markdown: str
+
+
 class DeviceRegisterRequest(BaseModel):
     token: NonBlankStr = Field(min_length=8, max_length=200)
 

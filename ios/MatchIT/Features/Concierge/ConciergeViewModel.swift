@@ -21,6 +21,9 @@ final class ConciergeViewModel {
     var isBusy = false
     var errorMessage: String?
 
+    let transcriber = SpeechTranscriber()
+    private var dictationBase = ""
+
     private let api: APIClient
 
     init(api: APIClient) {
@@ -92,6 +95,21 @@ final class ConciergeViewModel {
         problemText = ""
         answerText = ""
         phase = .describing
+    }
+
+    /// Voice-first intake: dictation streams into the problem description,
+    /// appending to whatever was already typed.
+    func toggleDictation() {
+        if transcriber.isRecording {
+            transcriber.stop()
+            return
+        }
+        let existing = problemText.trimmingCharacters(in: .whitespacesAndNewlines)
+        dictationBase = existing.isEmpty ? "" : existing + " "
+        transcriber.start { [weak self] transcript in
+            guard let self else { return }
+            self.problemText = self.dictationBase + transcript
+        }
     }
 
     private func run(_ work: @escaping @MainActor () async throws -> Void) async {

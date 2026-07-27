@@ -237,6 +237,18 @@ struct Interview: Codable, Identifiable, Sendable {
     }
 }
 
+struct CVSection: Codable, Sendable, Hashable {
+    let heading: String
+    let bullets: [String]
+}
+
+struct GeneratedCV: Codable, Sendable {
+    let headline: String
+    let summary: String
+    let sections: [CVSection]
+    let markdown: String
+}
+
 struct TeamMember: Codable, Sendable {
     let specialist: MatchSpecialistView
     let score: Double

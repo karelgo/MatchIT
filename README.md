@@ -60,7 +60,7 @@ Point the app at a running backend via the `API_BASE_URL` setting in
 
 ## What is verified, and what is not
 
-The backend is covered by **140 offline tests** (SQLite plus deterministic AI
+The backend is covered by **145 offline tests** (SQLite plus deterministic AI
 fakes — no API keys, no network). Two of those tests guard risks the rest of the
 suite structurally cannot see:
 
@@ -119,3 +119,6 @@ Twelve iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's 
 12. **PDF CV upload & launch collateral** — CV import from PDF with honest
     failure messages; landing page, privacy/terms drafts, pitch deck, brand and
     App Store listing.
+13. **Delight (Epic 9)** — home-screen widget, interview Live Activity with
+    Dynamic Island, voice-first concierge dictation, AI-generated CVs from the
+    evidence graph, and App Intents for Siri.

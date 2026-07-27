@@ -28,6 +28,7 @@ from app.services.audit import AuditService
 from app.services.auth import AuthService
 from app.services.chat import ChatService
 from app.services.contract import ContractService
+from app.services.cvgen import CVGeneratorService
 from app.services.enrichment import EnrichmentService
 from app.services.github import GitHubClient, build_github_client
 from app.services.intake import IntakeService
@@ -90,6 +91,7 @@ def create_app(
     app.state.intake_service = IntakeService(metered("intake"))
     app.state.interview_service = InterviewService(metered("interview"))
     app.state.contract_service = ContractService(metered("contract"))
+    app.state.cv_generator = CVGeneratorService(metered("cv_generator"))
     app.state.enrichment_service = EnrichmentService(
         metered("enrichment"), github_client or build_github_client()
     )

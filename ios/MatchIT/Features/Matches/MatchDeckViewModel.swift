@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import WidgetKit
 
 /// Specialist-side opportunity deck: swipe right to accept, left to pass.
 @MainActor
@@ -22,9 +23,22 @@ final class MatchDeckViewModel {
         defer { isLoading = false }
         do {
             deck = try await api.opportunityInbox()
+            publishWidgetSnapshot()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func publishWidgetSnapshot() {
+        SharedStore.save(
+            WidgetSnapshot(
+                opportunityCount: deck.count,
+                topOpportunityTitle: deck.first?.assignment.requirements.roles.first?.title,
+                topScore: deck.first?.score,
+                updatedAt: .now
+            )
+        )
+        WidgetCenter.shared.reloadTimelines(ofKind: SharedStore.widgetKind)
     }
 
     func decideTopCard(_ decision: MatchDecision) async {
@@ -35,6 +49,7 @@ final class MatchDeckViewModel {
             if updated.status == "mutual" {
                 lastMutualMatch = updated
             }
+            publishWidgetSnapshot()
         } catch {
             errorMessage = error.localizedDescription
             deck.insert(top, at: 0)

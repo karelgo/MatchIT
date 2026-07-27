@@ -53,11 +53,38 @@ struct ConciergeView: View {
             Text("Talk to us like you'd talk to a colleague. The AI writes the assignment.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            TextEditor(text: $model.problemText)
-                .frame(minHeight: 160)
-                .padding(8)
-                .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
-                .accessibilityLabel("Problem description")
+            ZStack(alignment: .bottomTrailing) {
+                TextEditor(text: $model.problemText)
+                    .frame(minHeight: 160)
+                    .padding(8)
+                    .background(
+                        Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12)
+                    )
+                    .accessibilityLabel("Problem description")
+                Button {
+                    model.toggleDictation()
+                } label: {
+                    Image(
+                        systemName: model.transcriber.isRecording
+                            ? "stop.circle.fill" : "mic.circle.fill"
+                    )
+                    .font(.system(size: 30))
+                    .foregroundStyle(model.transcriber.isRecording ? Theme.danger : Theme.accent)
+                    .symbolEffect(.pulse, isActive: model.transcriber.isRecording)
+                }
+                .padding(10)
+                .accessibilityLabel(
+                    model.transcriber.isRecording ? "Stop dictation" : "Dictate your problem"
+                )
+            }
+            if model.transcriber.isRecording {
+                Label("Listening — talk like you'd talk to a colleague", systemImage: "waveform")
+                    .font(.caption)
+                    .foregroundStyle(Theme.accent)
+            }
+            if let speechError = model.transcriber.errorMessage {
+                Text(speechError).font(.caption).foregroundStyle(Theme.danger)
+            }
             Text("Example: “We need two Microsoft Fabric architects to migrate our data warehouse within six months.”")
                 .font(.caption)
                 .foregroundStyle(.tertiary)

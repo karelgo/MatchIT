@@ -142,6 +142,10 @@ actor APIClient {
         try await post("specialists/me/enrich/github", body: ["username": username])
     }
 
+    func generateCV() async throws -> GeneratedCV {
+        try await post("specialists/me/generated-cv", body: Empty())
+    }
+
     func uploadCV(pdfData: Data, filename: String) async throws -> EnrichmentResult {
         let boundary = "matchit-\(UUID().uuidString)"
         var body = Data()

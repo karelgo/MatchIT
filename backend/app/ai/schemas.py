@@ -141,6 +141,19 @@ class GitHubExtraction(BaseModel):
     skills: list[EvidencedSkill] = Field(default_factory=list)
 
 
+class CVSection(BaseModel):
+    heading: str = Field(description="e.g. 'Core skills', 'Selected work', 'Certifications'")
+    bullets: list[str] = Field(min_length=1)
+
+
+class GeneratedCV(BaseModel):
+    """A CV written from the profile's evidence — never beyond it."""
+
+    headline: str
+    summary: str = Field(description="Three or four sentences, first person, no clichés")
+    sections: list[CVSection] = Field(min_length=2)
+
+
 # ---- team building ----
 
 

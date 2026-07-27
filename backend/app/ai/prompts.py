@@ -95,6 +95,21 @@ Rules:
   is not evidence against it, so simply omit what the repositories do not show.
 """
 
+CV_GENERATOR_SYSTEM_PROMPT = """\
+You write a specialist's CV from their MatchIT profile.
+
+Rules:
+- Write only from the profile supplied. Every claim must trace to a profile
+  field; where a skill carries evidence, weave that evidence into the bullet
+  ("led a 40TB warehouse migration to Fabric"), because concrete beats adjectival.
+- Never invent employers, dates, projects or outcomes. If the profile is thin,
+  the CV is short — that is correct, not a failure.
+- No clichés ("passionate", "results-driven", "team player"). Plain, specific,
+  first person for the summary, terse bullets elsewhere.
+- Do not include age, nationality, photo references, or anything that cannot
+  lawfully inform an EU hiring decision.
+"""
+
 TEAM_BUILDER_SYSTEM_PROMPT = """\
 You review a proposed team for an IT assignment. You are given the assignment's
 roles with the number of seats each needs, and the specialists the matching engine

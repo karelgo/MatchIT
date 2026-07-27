@@ -78,6 +78,12 @@ struct ProfileView: View {
                             .font(.caption)
                             .foregroundStyle(Theme.success)
                     }
+                    Button {
+                        Task { await model.generateCV() }
+                    } label: {
+                        Label("Generate my CV", systemImage: "doc.richtext")
+                    }
+                    .disabled(model.isImporting)
                 } header: {
                     Text("Import evidence")
                 } footer: {
@@ -141,6 +147,33 @@ struct ProfileView: View {
                         return
                     }
                     await model.importCV(pdfData: data, filename: url.lastPathComponent)
+                }
+            }
+            .sheet(
+                isPresented: .init(
+                    get: { model.generatedCV != nil }, set: { if !$0 { model.generatedCV = nil } }
+                )
+            ) {
+                if let cv = model.generatedCV {
+                    NavigationStack {
+                        ScrollView {
+                            Text(cv.markdown)
+                                .font(.system(.footnote, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .navigationTitle("Your CV")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("Done") { model.generatedCV = nil }
+                            }
+                            ToolbarItem(placement: .topBarTrailing) {
+                                ShareLink(item: cv.markdown)
+                            }
+                        }
+                    }
                 }
             }
             .task { await model.load() }

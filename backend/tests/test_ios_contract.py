@@ -17,6 +17,7 @@ import pytest
 from tests.conftest import auth_headers, create_company
 from tests.test_chat import make_mutual_match
 from tests.test_contracts import TERMS, draft_of
+from tests.test_cvgen import generated_cv
 from tests.test_enrichment import CV_TEXT, cv_extraction
 from tests.test_interviews import assessment_of, plan_of
 from tests.test_team import proposal_of as team_proposal_of
@@ -145,6 +146,16 @@ async def payloads(client, fake_chat) -> dict[str, dict]:
     collected["Contract"] = contract
     collected["ContractDraft"] = contract["draft"]
     collected["ContractClause"] = contract["draft"]["clauses"][0]
+
+    # AI-generated CV
+    fake_chat.responses.append(generated_cv())
+    generated = (
+        await client.post(
+            "/api/v1/specialists/me/generated-cv", headers=auth_headers(specialist_tokens)
+        )
+    ).json()
+    collected["GeneratedCV"] = generated
+    collected["CVSection"] = generated["sections"][0]
 
     # CV enrichment, so the evidenced-skill shape is covered
     fake_chat.responses.append(cv_extraction())
