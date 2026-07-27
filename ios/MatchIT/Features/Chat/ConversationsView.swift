@@ -30,10 +30,12 @@ struct ConversationsView: View {
     @State private var model: ConversationsViewModel
     private let api: APIClient
     private let currentUserId: UUID
+    private let isCompany: Bool
 
-    init(api: APIClient, currentUserId: UUID) {
+    init(api: APIClient, currentUserId: UUID, isCompany: Bool) {
         self.api = api
         self.currentUserId = currentUserId
+        self.isCompany = isCompany
         _model = State(initialValue: ConversationsViewModel(api: api))
     }
 
@@ -54,7 +56,8 @@ struct ConversationsView: View {
                             ChatView(
                                 api: api,
                                 conversation: conversation,
-                                currentUserId: currentUserId
+                                currentUserId: currentUserId,
+                                isCompany: isCompany
                             )
                         } label: {
                             ConversationRow(conversation: conversation)

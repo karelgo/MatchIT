@@ -150,6 +150,47 @@ actor APIClient {
         )
     }
 
+    // MARK: - Contracts
+
+    func contract(matchId: UUID) async throws -> Contract? {
+        do {
+            return try await get("matches/\(matchId.uuidString.lowercased())/contract") as Contract
+        } catch APIError.server(let status, _) where status == 404 {
+            return nil
+        }
+    }
+
+    func createContract(
+        matchId: UUID,
+        hourlyRate: Double,
+        currency: String,
+        hoursPerWeek: Int,
+        startDate: String,
+        endDate: String?
+    ) async throws -> Contract {
+        struct Body: Encodable {
+            let hourlyRate: Double
+            let currency: String
+            let hoursPerWeek: Int
+            let startDate: String
+            let endDate: String?
+        }
+        return try await post(
+            "matches/\(matchId.uuidString.lowercased())/contract",
+            body: Body(
+                hourlyRate: hourlyRate,
+                currency: currency,
+                hoursPerWeek: hoursPerWeek,
+                startDate: startDate,
+                endDate: endDate
+            )
+        )
+    }
+
+    func signContract(matchId: UUID) async throws -> Contract {
+        try await post("matches/\(matchId.uuidString.lowercased())/contract/sign", body: Empty())
+    }
+
     // MARK: - Chat
 
     func conversations() async throws -> [Conversation] {

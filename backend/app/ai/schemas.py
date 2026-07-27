@@ -103,3 +103,31 @@ class InterviewAssessment(BaseModel):
     )
     recommendation: Recommendation
     summary: str = Field(description="Hiring-manager-facing summary of the interview")
+
+
+# ---- contracts ----
+
+
+class ContractClause(BaseModel):
+    heading: str
+    body: str
+
+
+class ContractDraft(BaseModel):
+    """A draft engagement contract. Always a draft — never legal advice."""
+
+    title: str
+    scope_of_work: list[str] = Field(
+        min_length=1, description="Concrete deliverables and responsibilities"
+    )
+    rate_terms: str = Field(description="Rate, invoicing cadence and payment terms in prose")
+    duration_terms: str = Field(description="Start, duration, extension and notice in prose")
+    clauses: list[ContractClause] = Field(
+        min_length=3,
+        description="At minimum: intellectual property, confidentiality, termination",
+    )
+    governing_law: str = Field(description="Jurisdiction, e.g. 'the laws of the Netherlands'")
+    open_points: list[str] = Field(
+        default_factory=list,
+        description="Anything the parties must still decide, or that needs a lawyer's eye",
+    )

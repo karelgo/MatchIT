@@ -3,7 +3,12 @@ import SwiftUI
 struct ChatView: View {
     @State private var model: ChatViewModel
 
-    init(api: APIClient, conversation: Conversation, currentUserId: UUID) {
+    private let api: APIClient
+    private let isCompany: Bool
+
+    init(api: APIClient, conversation: Conversation, currentUserId: UUID, isCompany: Bool) {
+        self.api = api
+        self.isCompany = isCompany
         _model = State(
             initialValue: ChatViewModel(
                 api: api, conversation: conversation, currentUserId: currentUserId
@@ -23,6 +28,18 @@ struct ChatView: View {
         .navigationTitle(model.conversation.counterpartName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    ContractView(
+                        api: api,
+                        matchId: model.conversation.matchId,
+                        isCompany: isCompany
+                    )
+                } label: {
+                    Image(systemName: "doc.text")
+                }
+                .accessibilityLabel("Contract")
+            }
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 1) {
                     Text(model.conversation.counterpartName)

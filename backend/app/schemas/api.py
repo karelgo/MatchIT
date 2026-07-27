@@ -256,6 +256,48 @@ class InterviewResponse(BaseModel):
     created_at: UTCDatetime
 
 
+# ---- contracts ----
+
+
+class ContractCreateRequest(BaseModel):
+    hourly_rate: float = Field(gt=0, le=10000)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    hours_per_week: int = Field(default=40, ge=1, le=80)
+    start_date: date
+    end_date: date | None = None
+
+
+class ContractClauseView(BaseModel):
+    heading: str
+    body: str
+
+
+class ContractDraftView(BaseModel):
+    title: str
+    scope_of_work: list[str]
+    rate_terms: str
+    duration_terms: str
+    clauses: list[ContractClauseView]
+    governing_law: str
+    open_points: list[str]
+
+
+class ContractResponse(BaseModel):
+    id: uuid.UUID
+    match_id: uuid.UUID
+    status: str
+    hourly_rate: float
+    currency: str
+    hours_per_week: int
+    start_date: date
+    end_date: date | None
+    draft: ContractDraftView
+    company_signed: bool
+    specialist_signed: bool
+    signed_by_me: bool
+    created_at: UTCDatetime
+
+
 # ---- chat ----
 
 

@@ -78,3 +78,6 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
    profile leaves unproven, scores the transcript against a rubric, and feeds the
    result into the trust score. The hiring manager sees risks and a
    recommendation; the specialist sees constructive feedback.
+5. **Contracts** — an agent drafts the EU engagement contract from the agreed
+   terms (never inventing them), both parties sign in-app, and the second
+   signature activates it.

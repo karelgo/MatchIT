@@ -16,6 +16,7 @@ import pytest
 
 from tests.conftest import auth_headers, create_company
 from tests.test_chat import make_mutual_match
+from tests.test_contracts import TERMS, draft_of
 from tests.test_interviews import assessment_of, plan_of
 
 MODELS_SWIFT = (
@@ -121,6 +122,27 @@ async def payloads(client, fake_chat) -> dict[str, dict]:
     ).json()
     collected["InterviewAssessment"] = company_interview["assessment"]
     collected["AnswerScore"] = company_interview["assessment"]["per_question"][0]
+
+    # engagement contract, drafted and signed by both parties
+    fake_chat.responses.append(draft_of())
+    contract = (
+        await client.post(
+            f"/api/v1/matches/{match['id']}/contract",
+            headers=auth_headers(company_tokens),
+            json=TERMS,
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/matches/{match['id']}/contract/sign", headers=auth_headers(company_tokens)
+    )
+    contract = (
+        await client.post(
+            f"/api/v1/matches/{match['id']}/contract/sign", headers=auth_headers(specialist_tokens)
+        )
+    ).json()
+    collected["Contract"] = contract
+    collected["ContractDraft"] = contract["draft"]
+    collected["ContractClause"] = contract["draft"]["clauses"][0]
 
     # TokenResponse comes straight off a fresh registration
     collected["TokenResponse"] = await create_company(client, email="contract-token@example.com")

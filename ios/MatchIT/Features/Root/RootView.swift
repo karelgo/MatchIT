@@ -30,7 +30,7 @@ struct RootView: View {
             TabView {
                 MatchDeckView(api: session.api)
                     .tabItem { Label("Opportunities", systemImage: "rectangle.stack.fill") }
-                ConversationsView(api: session.api, currentUserId: user.id)
+                ConversationsView(api: session.api, currentUserId: user.id, isCompany: false)
                     .tabItem { Label("Messages", systemImage: "bubble.left.and.bubble.right.fill") }
                 ProfileView(api: session.api, user: user) {
                     Task { await session.signOut() }
@@ -41,7 +41,7 @@ struct RootView: View {
             TabView {
                 ConciergeView(api: session.api)
                     .tabItem { Label("Concierge", systemImage: "sparkles") }
-                ConversationsView(api: session.api, currentUserId: user.id)
+                ConversationsView(api: session.api, currentUserId: user.id, isCompany: true)
                     .tabItem { Label("Messages", systemImage: "bubble.left.and.bubble.right.fill") }
                 AccountView(user: user) {
                     Task { await session.signOut() }

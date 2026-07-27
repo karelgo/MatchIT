@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.ai.embeddings import EmbeddingModel, build_embedding_model
 from app.ai.llm import ChatModel, build_chat_model
-from app.api.v1 import assignments, auth, chat, interviews, profiles
+from app.api.v1 import assignments, auth, chat, contracts, interviews, profiles
 from app.core.config import Settings, get_settings
 from app.db.session import get_sessionmaker
 from app.services.apple import AppleIdentityVerifier, JWKSAppleVerifier
 from app.services.auth import AuthService
 from app.services.chat import ChatService
+from app.services.contract import ContractService
 from app.services.intake import IntakeService
 from app.services.interview import InterviewService
 from app.services.matching import MatchingEngine
@@ -54,6 +55,7 @@ def create_app(
     app.state.auth_service = AuthService(settings, apple_verifier or JWKSAppleVerifier(settings))
     app.state.intake_service = IntakeService(llm)
     app.state.interview_service = InterviewService(llm)
+    app.state.contract_service = ContractService(llm)
     app.state.matching_engine = MatchingEngine(embeddings, index)
     app.state.trust_service = TrustScoreService()
     app.state.chat_service = ChatService(pubsub or build_pubsub(settings))
@@ -67,6 +69,7 @@ def create_app(
     app.include_router(assignments.router, prefix=api_prefix)
     app.include_router(chat.router, prefix=api_prefix)
     app.include_router(interviews.router, prefix=api_prefix)
+    app.include_router(contracts.router, prefix=api_prefix)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

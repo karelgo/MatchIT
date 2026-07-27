@@ -4,18 +4,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.ai.schemas import AssignmentRequirements, InterviewPlan
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, load_match, viewer_role
 from app.models import (
-    Assignment,
     Interview,
     InterviewStatus,
-    Match,
     MatchStatus,
     SpecialistProfile,
-    User,
 )
 from app.schemas.api import (
     AssessmentView,
@@ -35,33 +31,6 @@ def get_interview_service(request: Request) -> InterviewService:
 
 
 InterviewDep = Annotated[InterviewService, Depends(get_interview_service)]
-
-
-async def _load_match(db: AsyncSession, match_id: uuid.UUID) -> Match:
-    match = await db.scalar(
-        select(Match)
-        .where(Match.id == match_id)
-        .options(
-            selectinload(Match.specialist).selectinload(SpecialistProfile.user),
-            selectinload(Match.assignment).selectinload(Assignment.company),
-        )
-    )
-    if match is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "match not found")
-    return match
-
-
-def _viewer_role(match: Match, user: User) -> str:
-    """'specialist' | 'company' for a party to this match; 404 otherwise.
-
-    Not-a-party is reported as 404 rather than 403 so match existence does not
-    leak to strangers.
-    """
-    if match.specialist.user_id == user.id:
-        return "specialist"
-    if match.assignment.company.user_id == user.id:
-        return "company"
-    raise HTTPException(status.HTTP_404_NOT_FOUND, "match not found")
 
 
 def _to_response(interview: Interview, viewer: str) -> InterviewResponse:
@@ -112,8 +81,8 @@ async def start_interview(
     interviews: InterviewDep,
 ):
     """Generate the interview for a match. Idempotent — returns the existing one."""
-    match = await _load_match(db, match_id)
-    viewer = _viewer_role(match, user)
+    match = await load_match(db, match_id)
+    viewer = viewer_role(match, user)
     if match.status == MatchStatus.CLOSED:
         raise HTTPException(status.HTTP_409_CONFLICT, "match is closed")
 
@@ -131,8 +100,8 @@ async def start_interview(
 
 @router.get("/matches/{match_id}/interview", response_model=InterviewResponse)
 async def get_interview(match_id: uuid.UUID, user: CurrentUser, db: DbSession):
-    match = await _load_match(db, match_id)
-    viewer = _viewer_role(match, user)
+    match = await load_match(db, match_id)
+    viewer = viewer_role(match, user)
     interview = await _get_interview(db, match_id)
     if interview is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no interview for this match")
@@ -149,8 +118,8 @@ async def answer_interview(
     request: Request,
 ):
     """Submit the answer to the current question; the last answer triggers scoring."""
-    match = await _load_match(db, match_id)
-    viewer = _viewer_role(match, user)
+    match = await load_match(db, match_id)
+    viewer = viewer_role(match, user)
     if viewer != "specialist":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "only the specialist answers")
 

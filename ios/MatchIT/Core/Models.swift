@@ -223,6 +223,39 @@ struct Interview: Codable, Identifiable, Sendable {
     }
 }
 
+struct ContractClause: Codable, Sendable, Hashable {
+    let heading: String
+    let body: String
+}
+
+struct ContractDraft: Codable, Sendable, Hashable {
+    let title: String
+    let scopeOfWork: [String]
+    let rateTerms: String
+    let durationTerms: String
+    let clauses: [ContractClause]
+    let governingLaw: String
+    let openPoints: [String]
+}
+
+struct Contract: Codable, Identifiable, Sendable {
+    let id: UUID
+    let matchId: UUID
+    let status: String
+    let hourlyRate: Double
+    let currency: String
+    let hoursPerWeek: Int
+    let startDate: String
+    let endDate: String?
+    let draft: ContractDraft
+    let companySigned: Bool
+    let specialistSigned: Bool
+    let signedByMe: Bool
+
+    var isActive: Bool { status == "active" }
+    var awaitingMySignature: Bool { !signedByMe && !isActive }
+}
+
 struct Conversation: Codable, Identifiable, Sendable, Hashable {
     let id: UUID
     let matchId: UUID

@@ -12,11 +12,20 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import Settings
 from app.core.security import decode_access_token
 from app.db.session import get_db
-from app.models import COMPANY_ROLES, SPECIALIST_ROLES, CompanyProfile, SpecialistProfile, User
+from app.models import (
+    COMPANY_ROLES,
+    SPECIALIST_ROLES,
+    Assignment,
+    CompanyProfile,
+    Match,
+    SpecialistProfile,
+    User,
+)
 from app.services.auth import AuthService
 from app.services.intake import IntakeService
 from app.services.matching import MatchingEngine
@@ -85,3 +94,31 @@ async def get_current_company_profile(user: CurrentUser, db: DbSession) -> Compa
 
 CurrentSpecialistProfile = Annotated[SpecialistProfile, Depends(get_current_specialist_profile)]
 CurrentCompanyProfile = Annotated[CompanyProfile, Depends(get_current_company_profile)]
+
+
+async def load_match(db: AsyncSession, match_id: uuid.UUID) -> Match:
+    """Load a match with both parties eagerly attached."""
+    match = await db.scalar(
+        select(Match)
+        .where(Match.id == match_id)
+        .options(
+            selectinload(Match.specialist).selectinload(SpecialistProfile.user),
+            selectinload(Match.assignment).selectinload(Assignment.company),
+        )
+    )
+    if match is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "match not found")
+    return match
+
+
+def viewer_role(match: Match, user: User) -> str:
+    """'specialist' | 'company' for a party to this match; 404 otherwise.
+
+    Not-a-party is reported as 404 rather than 403 so match existence does not
+    leak to strangers.
+    """
+    if match.specialist.user_id == user.id:
+        return "specialist"
+    if match.assignment.company.user_id == user.id:
+        return "company"
+    raise HTTPException(status.HTTP_404_NOT_FOUND, "match not found")

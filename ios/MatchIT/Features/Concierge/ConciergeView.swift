@@ -247,6 +247,12 @@ struct CandidateCard: View {
                 Label("It's a match — chat unlocked", systemImage: "checkmark.seal.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.success)
+                NavigationLink {
+                    ContractView(api: api, matchId: match.id, isCompany: true)
+                } label: {
+                    Label("Contract", systemImage: "doc.text")
+                        .font(.subheadline.weight(.medium))
+                }
             } else if match.companyDecision == .pending {
                 HStack(spacing: 10) {
                     Button {

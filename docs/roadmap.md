@@ -52,9 +52,12 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - Re-interviewing when an assignment materially changes.
 
 ## Epic 6 — Contracts & payments
-- Contract generator agent (assignment + match + rates → draft contract, EU
-  jurisdictions), e-signature, Stripe Connect: escrow, hourly & fixed-price,
-  invoicing with VAT, subscriptions & commission.
+- ✅ Contract generator agent (Iteration 5): drafts an EU engagement contract from
+  the assignment plus the agreed commercial terms — the model never invents a rate
+  or date, and anything contentious lands in `open_points` for a lawyer. Both
+  parties sign in-app; the second signature activates the contract.
+- Stripe Connect: escrow, hourly & fixed-price, invoicing with VAT, subscriptions
+  & commission.
 
 ## Epic 7 — Admin portal & analytics
 - User management, disputes, fraud queue; funnel/retention/LTV/CAC dashboards;
@@ -74,10 +77,7 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 6, story 1 — the contract generator.** The loop now runs from problem
-statement to interviewed, scored, mutually-accepted candidate — and then stops
-dead, because there is no way to actually engage anyone. A contract agent
-(assignment + match + agreed rate → a draft EU contract), e-signature and the
-`contracts` table is what turns MatchIT from a matching product into a staffing
-platform, and it is the last step before money can move (Stripe escrow, Epic 6
-story 2).
+**Epic 8 — trust, safety and compliance.** The platform now holds CVs, interview
+transcripts and signed contracts: personal data under GDPR, with no export, no
+erasure, no audit trail and no rate limiting. That is the gap most likely to stop
+a real launch, and it is cheap to close now versus retrofitting later.

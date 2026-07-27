@@ -1,5 +1,6 @@
 from app.models.assignment import Assignment, AssignmentStatus, Decision, Match, MatchStatus
 from app.models.chat import Conversation, Message
+from app.models.contract import Contract, ContractStatus
 from app.models.interview import Interview, InterviewStatus
 from app.models.profiles import CompanyProfile, RemotePreference, SpecialistProfile
 from app.models.user import (
@@ -15,6 +16,8 @@ __all__ = [
     "AssignmentStatus",
     "COMPANY_ROLES",
     "CompanyProfile",
+    "Contract",
+    "ContractStatus",
     "Conversation",
     "Decision",
     "Interview",

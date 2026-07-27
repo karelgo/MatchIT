@@ -91,6 +91,20 @@ The assessment is stored whole and **projected per viewer** at the API boundary:
 `concerns`, `recommendation`, `summary` and the per-question breakdown are written
 for the hiring manager and are never sent to the specialist.
 
+### contracts
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| match_id | FK → matches, unique | one contract per engagement |
+| status | enum | draft, pending_signatures, active, completed, cancelled |
+| hourly_rate / currency / hours_per_week | | agreed commercial terms |
+| start_date / end_date | date | end_date nullable (open-ended) |
+| draft | JSONB | validated `ContractDraft` prose |
+| company_signed_at / specialist_signed_at | timestamptz, nullable | both set → active |
+
+Commercial terms are real columns because invoicing, reporting and escrow query
+them; only the drafted prose lives in JSON, because only humans read it.
+
 ### refresh_tokens
 token_hash (SHA-256, unique), user_id FK, expires_at, revoked_at. Rotation revokes
 the old row atomically with issuing the new one.
