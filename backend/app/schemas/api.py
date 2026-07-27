@@ -22,6 +22,21 @@ def _as_utc(value: datetime) -> datetime:
 
 UTCDatetime = Annotated[datetime, AfterValidator(_as_utc)]
 
+
+def _non_blank(value: str) -> str:
+    """Reject whitespace-only input and return the trimmed value.
+
+    `min_length` alone lets "   " through, which then strips to an empty string —
+    an empty chat message, or an interview question marked answered with nothing.
+    """
+    trimmed = value.strip()
+    if not trimmed:
+        raise ValueError("must not be blank")
+    return trimmed
+
+
+NonBlankStr = Annotated[str, AfterValidator(_non_blank)]
+
 # ---- auth ----
 
 
@@ -125,11 +140,11 @@ class CompanyProfileResponse(CompanyProfileRequest):
 
 
 class AssignmentCreateRequest(BaseModel):
-    description: str = Field(min_length=20, max_length=20000)
+    description: NonBlankStr = Field(min_length=20, max_length=20000)
 
 
 class AssignmentRefineRequest(BaseModel):
-    answer: str = Field(min_length=1, max_length=8000)
+    answer: NonBlankStr = Field(min_length=1, max_length=8000)
 
 
 class IntakeMessage(BaseModel):
@@ -190,11 +205,62 @@ class MatchDecisionRequest(BaseModel):
     decision: Decision = Field(description="accepted or rejected")
 
 
+# ---- AI interview ----
+
+
+class InterviewQuestionView(BaseModel):
+    question: str
+    skill: str
+    rationale: str
+
+
+class TranscriptEntry(BaseModel):
+    question: str
+    answer: str
+
+
+class AnswerScoreView(BaseModel):
+    question: str
+    score: float
+    reasoning: str
+
+
+class AssessmentView(BaseModel):
+    """Projected per viewer: the specialist never receives `concerns`,
+    `recommendation`, `summary` or the per-question breakdown."""
+
+    overall_score: float
+    strengths: list[str] = Field(default_factory=list)
+    development_areas: list[str] = Field(default_factory=list)
+    concerns: list[str] | None = None
+    recommendation: str | None = None
+    summary: str | None = None
+    per_question: list[AnswerScoreView] | None = None
+
+
+class InterviewAnswerRequest(BaseModel):
+    answer: NonBlankStr = Field(min_length=1, max_length=8000)
+
+
+class InterviewResponse(BaseModel):
+    id: uuid.UUID
+    match_id: uuid.UUID
+    status: str
+    gap_summary: str
+    questions: list[InterviewQuestionView]
+    transcript: list[TranscriptEntry]
+    current_question: InterviewQuestionView | None
+    answered_count: int
+    total_questions: int
+    assessment: AssessmentView | None
+    created_at: UTCDatetime
+
+
 # ---- chat ----
 
 
 class MessageCreateRequest(BaseModel):
-    content: str = Field(min_length=1, max_length=4000)
+    content: NonBlankStr = Field(min_length=1, max_length=4000)
 
 
 class MessageResponse(BaseModel):

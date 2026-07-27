@@ -104,6 +104,33 @@ async def test_send_and_read_messages(client, fake_chat):
     assert refreshed["last_message"] == "Yes — September 7 works."
 
 
+async def test_blank_messages_rejected(client, fake_chat):
+    """min_length alone would let "   " through and store an empty message."""
+    _, company_tokens, _ = await make_mutual_match(
+        client, fake_chat, company_email="chat-blank@example.com"
+    )
+    conversation = (
+        await client.get("/api/v1/conversations", headers=auth_headers(company_tokens))
+    ).json()[0]
+
+    for blank in ("", "   ", "\n\t "):
+        response = await client.post(
+            f"/api/v1/conversations/{conversation['id']}/messages",
+            headers=auth_headers(company_tokens),
+            json={"content": blank},
+        )
+        assert response.status_code == 422, f"{blank!r} was accepted"
+
+    # surrounding whitespace on a real message is trimmed, not rejected
+    ok = await client.post(
+        f"/api/v1/conversations/{conversation['id']}/messages",
+        headers=auth_headers(company_tokens),
+        json={"content": "  hello  "},
+    )
+    assert ok.status_code == 201
+    assert ok.json()["content"] == "hello"
+
+
 async def test_outsider_cannot_access_conversation(client, fake_chat):
     _, company_tokens, _ = await make_mutual_match(
         client, fake_chat, company_email="chat-hm3@example.com"

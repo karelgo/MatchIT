@@ -74,3 +74,7 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
    budget/duration are AI-estimated from EU market rates and flagged as estimates.
 3. **Real-time chat** — a conversation opens on every mutual match, with REST
    history and WebSocket live delivery, plus the iOS Messages tab.
+4. **AI interviews** — the agent interviews a candidate on exactly what their
+   profile leaves unproven, scores the transcript against a rubric, and feeds the
+   result into the trust score. The hiring manager sees risks and a
+   recommendation; the specialist sees constructive feedback.

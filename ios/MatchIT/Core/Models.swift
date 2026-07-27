@@ -176,6 +176,53 @@ struct Match: Codable, Identifiable, Sendable {
     let assignment: AssignmentBrief
 }
 
+struct InterviewQuestion: Codable, Sendable, Hashable {
+    let question: String
+    let skill: String
+    let rationale: String
+}
+
+struct TranscriptEntry: Codable, Sendable, Hashable {
+    let question: String
+    let answer: String
+}
+
+struct AnswerScore: Codable, Sendable, Hashable {
+    let question: String
+    let score: Double
+    let reasoning: String
+}
+
+/// Server-projected: `concerns`, `recommendation`, `summary` and `perQuestion`
+/// are present only for the hiring manager.
+struct InterviewAssessment: Codable, Sendable, Hashable {
+    let overallScore: Double
+    let strengths: [String]
+    let developmentAreas: [String]
+    let concerns: [String]?
+    let recommendation: String?
+    let summary: String?
+    let perQuestion: [AnswerScore]?
+}
+
+struct Interview: Codable, Identifiable, Sendable {
+    let id: UUID
+    let matchId: UUID
+    let status: String
+    let gapSummary: String
+    let questions: [InterviewQuestion]
+    let transcript: [TranscriptEntry]
+    let currentQuestion: InterviewQuestion?
+    let answeredCount: Int
+    let totalQuestions: Int
+    let assessment: InterviewAssessment?
+
+    var isComplete: Bool { status == "completed" }
+    var progress: Double {
+        totalQuestions == 0 ? 0 : Double(answeredCount) / Double(totalQuestions)
+    }
+}
+
 struct Conversation: Codable, Identifiable, Sendable, Hashable {
     let id: UUID
     let matchId: UUID

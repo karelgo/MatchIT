@@ -76,6 +76,21 @@ Live delivery is a broadcast over `PubSub` (Redis channel `chat:{conversation_id
 not a database concern — messages are persisted first, then published, so a dropped
 socket never loses history.
 
+### interviews
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| match_id | FK → matches, unique | one screening interview per match |
+| status | enum | in_progress, completed |
+| plan | JSONB | validated `InterviewPlan` (gap summary + 3–6 questions) |
+| transcript | JSONB | `[{question, answer}]` in ask order |
+| assessment | JSONB, nullable | validated `InterviewAssessment`, written on completion |
+| score | float, nullable | `overall_score`, mirrored for querying/ranking |
+
+The assessment is stored whole and **projected per viewer** at the API boundary:
+`concerns`, `recommendation`, `summary` and the per-question breakdown are written
+for the hiring manager and are never sent to the specialist.
+
 ### refresh_tokens
 token_hash (SHA-256, unique), user_id FK, expires_at, revoked_at. Rotation revokes
 the old row atomically with issuing the new one.

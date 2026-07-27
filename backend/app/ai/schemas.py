@@ -5,6 +5,7 @@ the validated shape persisted on domain entities.
 """
 
 from datetime import date
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -54,3 +55,51 @@ class AssignmentRequirements(BaseModel):
             must.extend(s.lower() for s in role.must_have_skills)
             nice.extend(s.lower() for s in role.nice_to_have_skills)
         return list(dict.fromkeys(must)), list(dict.fromkeys(nice))
+
+
+# ---- AI interview ----
+
+
+class InterviewQuestion(BaseModel):
+    question: str = Field(description="The question, addressed directly to the specialist")
+    skill: str = Field(description="Canonical skill or competency this probes")
+    rationale: str = Field(
+        description="Why this matters for THIS assignment — shown to the company"
+    )
+
+
+class InterviewPlan(BaseModel):
+    """Questions targeted at what the profile does not already evidence."""
+
+    gap_summary: str = Field(
+        description="What the profile leaves unproven against the assignment's must-haves"
+    )
+    questions: list[InterviewQuestion] = Field(min_length=3, max_length=8)
+
+
+class AnswerScore(BaseModel):
+    question: str
+    score: float = Field(ge=0.0, le=1.0)
+    reasoning: str
+
+
+class Recommendation(StrEnum):
+    STRONG_YES = "strong_yes"
+    YES = "yes"
+    MAYBE = "maybe"
+    NO = "no"
+
+
+class InterviewAssessment(BaseModel):
+    overall_score: float = Field(ge=0.0, le=1.0)
+    per_question: list[AnswerScore] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
+    development_areas: list[str] = Field(
+        default_factory=list, description="Constructive, shown to the specialist"
+    )
+    concerns: list[str] = Field(
+        default_factory=list,
+        description="Risks for the hiring manager — not shown to the specialist",
+    )
+    recommendation: Recommendation
+    summary: str = Field(description="Hiring-manager-facing summary of the interview")

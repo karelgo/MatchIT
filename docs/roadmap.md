@@ -45,9 +45,11 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   assignments assembled as complementary teams).
 
 ## Epic 5 — AI interviews
-- Interview agent: question generation from the assignment + profile gap analysis,
-  in-app video interviews, transcription, scoring rubric, structured summaries
-  for the hiring manager.
+- ✅ Interview agent (Iteration 4): questions generated from the assignment plus a
+  profile gap analysis, answered in-app, scored against a rubric, with a
+  hiring-manager summary and a specialist-safe projection. Feeds the trust score.
+- In-app video interviews + transcription, reusing the same assess step.
+- Re-interviewing when an assignment materially changes.
 
 ## Epic 6 — Contracts & payments
 - Contract generator agent (assignment + match + rates → draft contract, EU
@@ -72,10 +74,10 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 5, story 1 — the AI interview agent.** Chat now carries the conversation
-between a matched company and specialist, which is exactly the transport an AI
-interviewer needs. Generating interview questions from the assignment plus the
-candidate's skill-graph gaps, running them in-thread, and returning a scored
-summary is the single biggest remaining step toward "AI does 90% of the
-recruiting" — and it feeds the trust score's `interview_score` factor, which is
-already wired but always zero today.
+**Epic 6, story 1 — the contract generator.** The loop now runs from problem
+statement to interviewed, scored, mutually-accepted candidate — and then stops
+dead, because there is no way to actually engage anyone. A contract agent
+(assignment + match + agreed rate → a draft EU contract), e-signature and the
+`contracts` table is what turns MatchIT from a matching product into a staffing
+platform, and it is the last step before money can move (Stripe escrow, Epic 6
+story 2).

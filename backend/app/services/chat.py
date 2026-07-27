@@ -136,9 +136,7 @@ class ChatService:
     async def send_message(
         self, db: AsyncSession, conversation: Conversation, sender: User, content: str
     ) -> MessageResponse:
-        message = Message(
-            conversation_id=conversation.id, sender_id=sender.id, content=content.strip()
-        )
+        message = Message(conversation_id=conversation.id, sender_id=sender.id, content=content)
         db.add(message)
         await db.flush()  # populates message.id / created_at defaults
         conversation.updated_at = message.created_at

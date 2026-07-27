@@ -128,6 +128,28 @@ actor APIClient {
         )
     }
 
+    // MARK: - AI interview
+
+    /// Returns nil when no interview has been started for this match yet.
+    func interview(matchId: UUID) async throws -> Interview? {
+        do {
+            return try await get("matches/\(matchId.uuidString.lowercased())/interview") as Interview
+        } catch APIError.server(let status, _) where status == 404 {
+            return nil
+        }
+    }
+
+    func startInterview(matchId: UUID) async throws -> Interview {
+        try await post("matches/\(matchId.uuidString.lowercased())/interview", body: Empty())
+    }
+
+    func answerInterview(matchId: UUID, answer: String) async throws -> Interview {
+        try await post(
+            "matches/\(matchId.uuidString.lowercased())/interview/answer",
+            body: ["answer": answer]
+        )
+    }
+
     // MARK: - Chat
 
     func conversations() async throws -> [Conversation] {

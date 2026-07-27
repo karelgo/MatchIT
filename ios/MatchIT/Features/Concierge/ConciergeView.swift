@@ -2,8 +2,10 @@ import SwiftUI
 
 struct ConciergeView: View {
     @State private var model: ConciergeViewModel
+    private let api: APIClient
 
     init(api: APIClient) {
+        self.api = api
         _model = State(initialValue: ConciergeViewModel(api: api))
     }
 
@@ -188,7 +190,7 @@ struct ConciergeView: View {
                 )
             }
             ForEach(matches) { match in
-                CandidateCard(match: match) { decision in
+                CandidateCard(match: match, api: api) { decision in
                     Task { await model.decide(match: match, decision: decision) }
                 }
             }
@@ -210,6 +212,7 @@ struct EstimateBadge: View {
 
 struct CandidateCard: View {
     let match: Match
+    let api: APIClient
     let onDecision: (MatchDecision) -> Void
 
     var body: some View {
@@ -232,6 +235,13 @@ struct CandidateCard: View {
                 Spacer()
             }
             ChipFlow(items: match.specialist.skills.prefix(5).map { $0.name.capitalized })
+
+            NavigationLink {
+                InterviewView(api: api, matchId: match.id, viewer: .company)
+            } label: {
+                Label("AI interview", systemImage: "sparkles")
+                    .font(.subheadline.weight(.medium))
+            }
 
             if match.status == "mutual" {
                 Label("It's a match — chat unlocked", systemImage: "checkmark.seal.fill")

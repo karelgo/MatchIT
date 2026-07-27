@@ -3,8 +3,11 @@ import SwiftUI
 struct MatchDeckView: View {
     @State private var model: MatchDeckViewModel
     @State private var dragOffset: CGSize = .zero
+    @State private var interviewTarget: InterviewTarget?
+    private let api: APIClient
 
     init(api: APIClient) {
+        self.api = api
         _model = State(initialValue: MatchDeckViewModel(api: api))
     }
 
@@ -22,6 +25,11 @@ struct MatchDeckView: View {
             .task { await model.load() }
             .refreshable { await model.load() }
             .sensoryFeedback(.success, trigger: model.lastMutualMatch?.id)
+            .sheet(item: $interviewTarget) { target in
+                NavigationStack {
+                    InterviewView(api: api, matchId: target.id, viewer: .specialist)
+                }
+            }
         }
     }
 
@@ -45,8 +53,11 @@ struct MatchDeckView: View {
     private var deck: some View {
         ZStack {
             ForEach(Array(model.deck.prefix(3).enumerated().reversed()), id: \.element.id) { index, match in
-                OpportunityCard(match: match)
-                    .scaleEffect(1 - CGFloat(index) * 0.04)
+                OpportunityCard(
+                    match: match,
+                    onInterview: index == 0 ? { interviewTarget = InterviewTarget(id: match.id) } : nil
+                )
+                .scaleEffect(1 - CGFloat(index) * 0.04)
                     .offset(y: CGFloat(index) * 12)
                     .offset(index == 0 ? dragOffset : .zero)
                     .rotationEffect(.degrees(index == 0 ? Double(dragOffset.width / 18) : 0))
@@ -109,8 +120,16 @@ struct MatchDeckView: View {
     }
 }
 
+/// `sheet(item:)` needs Identifiable, and UUID deliberately isn't — retroactively
+/// conforming an imported type to an imported protocol is exactly what Swift 6
+/// warns about, so wrap it instead.
+struct InterviewTarget: Identifiable {
+    let id: UUID
+}
+
 struct OpportunityCard: View {
     let match: Match
+    var onInterview: (() -> Void)?
 
     private var requirements: AssignmentRequirements { match.assignment.requirements }
 
@@ -149,6 +168,16 @@ struct OpportunityCard: View {
             .foregroundStyle(.secondary)
 
             Spacer(minLength: 0)
+
+            if let onInterview {
+                Button(action: onInterview) {
+                    Label("Take the AI interview", systemImage: "sparkles")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(Theme.accent)
+            }
 
             Label("Swipe right to accept, left to pass", systemImage: "hand.draw")
                 .font(.caption2)

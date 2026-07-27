@@ -71,13 +71,42 @@ projects, response time, interview scores and payment history, with explicit
 weights and a persisted factor breakdown. Deterministic and unit-tested; AI-derived
 factors (interview scoring, fraud signals) plug in as additional factors.
 
-### 5. AI agents (Epics 4–6)
+### 5. AI interview agent — shipped in Iteration 4
+
+Two schema-constrained calls, both provider-agnostic:
+
+1. **Plan** (`InterviewService.plan`) — given the assignment and the specialist's
+   profile, produce 3–6 questions. The prompt receives an explicit
+   `unproven_must_have_skills` list (must-haves the profile does not claim at all),
+   and the agent is instructed to spend the interview on those rather than on what
+   the profile already evidences. Each question carries a `rationale` the hiring
+   manager reads, so question selection is explainable like ranking is.
+2. **Assess** (`InterviewService.assess`) — given the transcript, return
+   `overall_score`, per-question scores with reasoning, strengths, development
+   areas, concerns and a hire recommendation.
+
+Two deliberate constraints:
+
+- **The interviewer never learns who it is interviewing.** `profile_view()` projects
+  the profile down to headline, bio, skills, experience, certifications and
+  languages — no identifiers, no location, no rate. A screening agent has no
+  business knowing the candidate's name or price, and a unit test asserts those
+  fields cannot reach the prompt.
+- **EU hiring law is in the prompt, not the review queue.** The planner is
+  instructed never to ask about age, health, family, nationality or religion.
+
+On completion the score flows into `TrustScoreService` as the `interview_score`
+factor — the first factor the platform can actually evidence. The remaining factors
+stay zero until the epics that produce them ship, so the score never overstates
+what is known.
+
+### 6. Further AI agents (Epics 4–6)
 
 Specialised agents are thin orchestrations over the same primitives, each with its
-own prompt, output schema and tool access: Recruiter, Interviewer, Contract
-Generator, Project Estimator, Team Builder, Career Coach, Salary Advisor, Skills
-Validator, Fraud Detection. The interview agent additionally consumes video
-transcripts (see roadmap).
+own prompt, output schema and tool access: Recruiter, Contract Generator, Project
+Estimator, Team Builder, Career Coach, Salary Advisor, Skills Validator, Fraud
+Detection. Video interviews extend the shipped interview agent by feeding it a
+transcript rather than typed answers (see roadmap).
 
 ## Cost & observability
 
