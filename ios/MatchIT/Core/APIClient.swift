@@ -128,6 +128,33 @@ actor APIClient {
         )
     }
 
+    // MARK: - Privacy (GDPR)
+
+    /// Returns the export as pretty-printed JSON text — the shape is deliberately
+    /// open-ended, so it is presented rather than decoded into a fixed model.
+    func exportMyData() async throws -> String {
+        var request = URLRequest(url: baseURL.appending(path: "users/me/export"))
+        request.httpMethod = "GET"
+        if let access = tokens?.accessToken {
+            request.setValue("Bearer \(access)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await session.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw APIError.unauthorized }
+        let object = try JSONSerialization.jsonObject(with: data)
+        let pretty = try JSONSerialization.data(
+            withJSONObject: object, options: [.prettyPrinted, .sortedKeys]
+        )
+        return String(decoding: pretty, as: UTF8.self)
+    }
+
+    func deleteMyAccount() async throws {
+        _ = try await request(
+            path: "users/me", method: "DELETE", bodyData: nil, authorized: true
+        ) as Empty
+        tokens = nil
+        tokenStore.clear()
+    }
+
     // MARK: - AI interview
 
     /// Returns nil when no interview has been started for this match yet.

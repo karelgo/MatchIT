@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.api.deps import DbSession, get_auth_service
+from app.api.deps import AuditDep, DbSession, get_auth_service, rate_limit
+from app.models import AuditAction
 from app.schemas.api import (
     AppleSignInRequest,
     LoginRequest,
@@ -29,23 +30,49 @@ def _to_response(pair: TokenPair) -> TokenResponse:
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterRequest, db: DbSession, auth: AuthServiceDep):
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("register", per_user=False))],
+)
+async def register(
+    body: RegisterRequest, db: DbSession, auth: AuthServiceDep, audit: AuditDep, request: Request
+):
     try:
         pair = await auth.register(
             db, email=body.email, password=body.password, full_name=body.full_name, role=body.role
         )
     except EmailTakenError:
         raise HTTPException(status.HTTP_409_CONFLICT, "email already registered") from None
+    await audit.record(
+        db, AuditAction.USER_REGISTERED, actor_user_id=pair.user.id, request=request
+    )
+    await db.commit()
     return _to_response(pair)
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(body: LoginRequest, db: DbSession, auth: AuthServiceDep):
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("login", per_user=False))],
+)
+async def login(
+    body: LoginRequest, db: DbSession, auth: AuthServiceDep, audit: AuditDep, request: Request
+):
     try:
         pair = await auth.login(db, email=body.email, password=body.password)
     except AuthError:
+        # Record the failure without the password or a user id we cannot trust
+        await audit.record(
+            db, AuditAction.LOGIN_FAILED, request=request, context={"email": body.email}
+        )
+        await db.commit()
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid credentials") from None
+    await audit.record(
+        db, AuditAction.LOGIN_SUCCEEDED, actor_user_id=pair.user.id, request=request
+    )
+    await db.commit()
     return _to_response(pair)
 
 

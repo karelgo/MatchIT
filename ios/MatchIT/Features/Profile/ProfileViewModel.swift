@@ -13,7 +13,7 @@ final class ProfileViewModel {
     var errorMessage: String?
     var savedBanner = false
 
-    private let api: APIClient
+    let api: APIClient
     let user: User
     let onSignOut: () -> Void
 

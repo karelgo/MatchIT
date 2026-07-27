@@ -1,4 +1,5 @@
 from app.models.assignment import Assignment, AssignmentStatus, Decision, Match, MatchStatus
+from app.models.audit import AuditAction, AuditLog
 from app.models.chat import Conversation, Message
 from app.models.contract import Contract, ContractStatus
 from app.models.interview import Interview, InterviewStatus
@@ -13,6 +14,8 @@ from app.models.user import (
 
 __all__ = [
     "Assignment",
+    "AuditAction",
+    "AuditLog",
     "AssignmentStatus",
     "COMPANY_ROLES",
     "CompanyProfile",

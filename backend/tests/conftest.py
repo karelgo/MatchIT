@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.ai.embeddings import FakeEmbeddingModel
@@ -14,7 +15,23 @@ from app.db.session import get_db
 from app.main import create_app
 from app.services.apple import AppleIdentity
 from app.services.pubsub import InMemoryPubSub
+from app.services.ratelimit import InMemoryRateLimiter
 from app.services.vector import InMemoryVectorIndex
+
+
+def enable_sqlite_foreign_keys(engine) -> None:
+    """SQLite ignores foreign keys unless asked.
+
+    Without this, ON DELETE CASCADE and SET NULL silently do nothing in tests
+    while Postgres enforces them in production — so the suite would pass on
+    exactly the referential behaviour most likely to be wrong.
+    """
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_pragma(dbapi_connection, _record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 class FakeAppleVerifier:
@@ -37,6 +54,8 @@ def test_settings() -> Settings:
         embedding_provider="fake",
         vector_backend="memory",
         pubsub_backend="memory",
+        rate_limit_backend="memory",
+        login_rate_limit=50,
         database_url="sqlite+aiosqlite://",
     )
 
@@ -54,6 +73,7 @@ def vector_index() -> InMemoryVectorIndex:
 @pytest.fixture
 async def client(test_settings, fake_chat, vector_index) -> AsyncIterator[AsyncClient]:
     engine = create_async_engine("sqlite+aiosqlite://")
+    enable_sqlite_foreign_keys(engine)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
@@ -65,6 +85,7 @@ async def client(test_settings, fake_chat, vector_index) -> AsyncIterator[AsyncC
         vector_index=vector_index,
         apple_verifier=FakeAppleVerifier(),
         pubsub=InMemoryPubSub(),
+        rate_limiter=InMemoryRateLimiter(),
         sessionmaker=sessionmaker,
     )
 

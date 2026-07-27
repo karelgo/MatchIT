@@ -43,7 +43,7 @@ struct RootView: View {
                     .tabItem { Label("Concierge", systemImage: "sparkles") }
                 ConversationsView(api: session.api, currentUserId: user.id, isCompany: true)
                     .tabItem { Label("Messages", systemImage: "bubble.left.and.bubble.right.fill") }
-                AccountView(user: user) {
+                AccountView(api: session.api, user: user) {
                     Task { await session.signOut() }
                 }
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
@@ -54,6 +54,7 @@ struct RootView: View {
 
 /// Minimal account screen for company-side users.
 struct AccountView: View {
+    let api: APIClient
     let user: User
     let onSignOut: () -> Void
 
@@ -65,6 +66,7 @@ struct AccountView: View {
                     LabeledContent("Email", value: user.email)
                     LabeledContent("Role", value: user.role.displayName)
                 }
+                PrivacySection(api: api, onDeleted: onSignOut)
                 Section {
                     Button("Sign out", role: .destructive) { onSignOut() }
                 }

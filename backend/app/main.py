@@ -8,17 +8,20 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.ai.embeddings import EmbeddingModel, build_embedding_model
 from app.ai.llm import ChatModel, build_chat_model
-from app.api.v1 import assignments, auth, chat, contracts, interviews, profiles
+from app.api.v1 import assignments, auth, chat, contracts, interviews, privacy, profiles
 from app.core.config import Settings, get_settings
 from app.db.session import get_sessionmaker
 from app.services.apple import AppleIdentityVerifier, JWKSAppleVerifier
+from app.services.audit import AuditService
 from app.services.auth import AuthService
 from app.services.chat import ChatService
 from app.services.contract import ContractService
 from app.services.intake import IntakeService
 from app.services.interview import InterviewService
 from app.services.matching import MatchingEngine
+from app.services.privacy import PrivacyService
 from app.services.pubsub import PubSub, build_pubsub
+from app.services.ratelimit import RateLimiter, build_rate_limiter
 from app.services.trust import TrustScoreService
 from app.services.vector import VectorIndex, build_vector_index
 
@@ -35,6 +38,7 @@ def create_app(
     vector_index: VectorIndex | None = None,
     apple_verifier: AppleIdentityVerifier | None = None,
     pubsub: PubSub | None = None,
+    rate_limiter: RateLimiter | None = None,
     sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
@@ -58,6 +62,9 @@ def create_app(
     app.state.contract_service = ContractService(llm)
     app.state.matching_engine = MatchingEngine(embeddings, index)
     app.state.trust_service = TrustScoreService()
+    app.state.audit_service = AuditService()
+    app.state.privacy_service = PrivacyService()
+    app.state.rate_limiter = rate_limiter or build_rate_limiter(settings)
     app.state.chat_service = ChatService(pubsub or build_pubsub(settings))
     # WebSockets open their own short-lived sessions rather than holding a
     # request-scoped one for the socket's lifetime (see api/v1/chat.py).
@@ -70,6 +77,7 @@ def create_app(
     app.include_router(chat.router, prefix=api_prefix)
     app.include_router(interviews.router, prefix=api_prefix)
     app.include_router(contracts.router, prefix=api_prefix)
+    app.include_router(privacy.router, prefix=api_prefix)
 
     @app.get("/health", tags=["ops"])
     async def health() -> dict[str, str]:

@@ -85,6 +85,8 @@ struct ProfileView: View {
                     Text("Your profile powers the AI matching engine — richer profiles rank higher.")
                 }
 
+                PrivacySection(api: model.api, onDeleted: model.onSignOut)
+
                 Section {
                     Button("Sign out", role: .destructive) { model.onSignOut() }
                 }
