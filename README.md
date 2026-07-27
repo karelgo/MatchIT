@@ -83,3 +83,5 @@ Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's n
    signature activates it.
 6. **Compliance** — rate limiting, an append-only audit trail, and GDPR export
    and erasure (refused while a contract is live).
+7. **Team builder** — multi-role assignments are filled seat by seat, with open
+   seats reported rather than padded.

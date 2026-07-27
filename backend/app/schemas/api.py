@@ -256,6 +256,44 @@ class InterviewResponse(BaseModel):
     created_at: UTCDatetime
 
 
+# ---- team building ----
+
+
+class TeamMemberView(BaseModel):
+    specialist: MatchSpecialistView
+    score: float
+    breakdown: dict[str, float]
+
+
+class TeamSeatView(BaseModel):
+    role_title: str
+    seniority: str
+    seats: int
+    filled: int
+    must_have_skills: list[str]
+    members: list[TeamMemberView]
+
+
+class TeamRationaleView(BaseModel):
+    role_title: str
+    specialist_headline: str
+    why: str
+
+
+class TeamProposalView(BaseModel):
+    summary: str
+    strengths: list[str]
+    gaps: list[str]
+    rationale: list[TeamRationaleView]
+
+
+class TeamResponse(BaseModel):
+    assignment_id: uuid.UUID
+    seats: list[TeamSeatView]
+    unfilled_seats: int
+    proposal: TeamProposalView
+
+
 # ---- contracts ----
 
 

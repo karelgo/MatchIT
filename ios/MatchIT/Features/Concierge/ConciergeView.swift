@@ -182,6 +182,19 @@ struct ConciergeView: View {
                 Button("New search") { model.startOver() }
                     .font(.subheadline)
             }
+            if case let .matched(assignment, _) = model.phase,
+               assignment.requirements.roles.contains(where: { $0.count > 1 })
+                   || assignment.requirements.roles.count > 1 {
+                NavigationLink {
+                    TeamView(api: api, assignmentId: assignment.id)
+                } label: {
+                    Label("Build a team instead", systemImage: "person.3.fill")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Theme.accentSoft, in: .rect(cornerRadius: 12))
+                }
+            }
             if matches.isEmpty {
                 ContentUnavailableView(
                     "No specialists yet",

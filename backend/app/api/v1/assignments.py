@@ -29,10 +29,16 @@ from app.schemas.api import (
     AssignmentResponse,
     MatchDecisionRequest,
     MatchResponse,
+    MatchSpecialistView,
+    TeamMemberView,
+    TeamProposalView,
+    TeamResponse,
+    TeamSeatView,
 )
 from app.services import intake as intake_service
 from app.services.intake import IntakeService
 from app.services.matching import MatchingEngine
+from app.services.team import TeamBuilderService
 
 router = APIRouter(tags=["assignments"])
 
@@ -174,6 +180,53 @@ async def list_matches(
 ):
     await _get_company_assignment(db, company.id, assignment_id)
     return await _list_matches(db, assignment_id)
+
+
+@router.post("/assignments/{assignment_id}/team", response_model=TeamResponse)
+async def build_team(
+    assignment_id: uuid.UUID,
+    company: CurrentCompanyProfile,
+    db: DbSession,
+    request: Request,
+):
+    """Assemble a team for a multi-role assignment.
+
+    Unlike `/matches`, which ranks individuals against the whole assignment, this
+    fills each role's seats separately and never allocates the same specialist to
+    two seats.
+    """
+    assignment = await _get_company_assignment(db, company.id, assignment_id)
+    requirements = AssignmentRequirements.model_validate(assignment.requirements)
+    candidates = list(await db.scalars(select(SpecialistProfile)))
+
+    builder: TeamBuilderService = request.app.state.team_builder
+    plan = await builder.build(requirements, candidates)
+
+    return TeamResponse(
+        assignment_id=assignment.id,
+        seats=[
+            TeamSeatView(
+                role_title=allocation.role.title,
+                seniority=allocation.role.seniority,
+                seats=allocation.seats,
+                filled=len(allocation.members),
+                must_have_skills=allocation.role.must_have_skills,
+                members=[
+                    TeamMemberView(
+                        specialist=MatchSpecialistView.model_validate(
+                            member.profile, from_attributes=True
+                        ),
+                        score=member.score,
+                        breakdown=member.breakdown,
+                    )
+                    for member in allocation.members
+                ],
+            )
+            for allocation in plan.allocations
+        ],
+        unfilled_seats=plan.unfilled_seats,
+        proposal=TeamProposalView.model_validate(plan.proposal.model_dump()),
+    )
 
 
 @router.get("/matches/inbox", response_model=list[MatchResponse])

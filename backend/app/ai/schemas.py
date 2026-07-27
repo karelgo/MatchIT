@@ -105,6 +105,25 @@ class InterviewAssessment(BaseModel):
     summary: str = Field(description="Hiring-manager-facing summary of the interview")
 
 
+# ---- team building ----
+
+
+class TeamMemberRationale(BaseModel):
+    role_title: str
+    specialist_headline: str
+    why: str = Field(description="Why this person fits this seat, in one or two sentences")
+
+
+class TeamProposal(BaseModel):
+    summary: str = Field(description="How this team covers the assignment, in a short paragraph")
+    strengths: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(
+        default_factory=list,
+        description="Unfilled seats, thin coverage or key-person risk the company should know",
+    )
+    rationale: list[TeamMemberRationale] = Field(default_factory=list)
+
+
 # ---- contracts ----
 
 

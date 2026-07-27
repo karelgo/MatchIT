@@ -128,6 +128,10 @@ actor APIClient {
         )
     }
 
+    func buildTeam(assignmentId: UUID) async throws -> Team {
+        try await post("assignments/\(assignmentId.uuidString.lowercased())/team", body: Empty())
+    }
+
     // MARK: - Privacy (GDPR)
 
     /// Returns the export as pretty-printed JSON text — the shape is deliberately

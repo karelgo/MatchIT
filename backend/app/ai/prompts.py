@@ -64,6 +64,21 @@ Rules:
   actually done this work before.
 """
 
+TEAM_BUILDER_SYSTEM_PROMPT = """\
+You review a proposed team for an IT assignment. You are given the assignment's
+roles with the number of seats each needs, and the specialists the matching engine
+allocated to those seats with their scores.
+
+Rules:
+- The allocation is already made; you explain and critique it, you do not reorder it.
+- gaps is the part the company actually needs: name unfilled seats, seats filled by
+  a weak match, and key-person risk where one person carries a critical skill alone.
+  An empty gaps list on an under-filled team is a failure on your part.
+- rationale: one entry per allocated specialist, saying what they bring to that
+  specific seat. Refer to their evidenced skills, not their score.
+- Be direct. A hiring manager is deciding whether to talk to these people.
+"""
+
 CONTRACT_SYSTEM_PROMPT = """\
 You draft engagement contracts between a company and an independent IT specialist
 in the EU. You are given the assignment, the agreed commercial terms and the

@@ -223,6 +223,44 @@ struct Interview: Codable, Identifiable, Sendable {
     }
 }
 
+struct TeamMember: Codable, Sendable {
+    let specialist: MatchSpecialistView
+    let score: Double
+    let breakdown: [String: Double]
+}
+
+struct TeamSeat: Codable, Sendable, Identifiable {
+    let roleTitle: String
+    let seniority: String
+    let seats: Int
+    let filled: Int
+    let mustHaveSkills: [String]
+    let members: [TeamMember]
+
+    var id: String { roleTitle }
+    var isComplete: Bool { filled >= seats }
+}
+
+struct TeamRationale: Codable, Sendable, Hashable {
+    let roleTitle: String
+    let specialistHeadline: String
+    let why: String
+}
+
+struct TeamProposal: Codable, Sendable {
+    let summary: String
+    let strengths: [String]
+    let gaps: [String]
+    let rationale: [TeamRationale]
+}
+
+struct Team: Codable, Sendable {
+    let assignmentId: UUID
+    let seats: [TeamSeat]
+    let unfilledSeats: Int
+    let proposal: TeamProposal
+}
+
 struct ContractClause: Codable, Sendable, Hashable {
     let heading: String
     let body: String

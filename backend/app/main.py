@@ -22,6 +22,7 @@ from app.services.matching import MatchingEngine
 from app.services.privacy import PrivacyService
 from app.services.pubsub import PubSub, build_pubsub
 from app.services.ratelimit import RateLimiter, build_rate_limiter
+from app.services.team import TeamBuilderService
 from app.services.trust import TrustScoreService
 from app.services.vector import VectorIndex, build_vector_index
 
@@ -60,7 +61,9 @@ def create_app(
     app.state.intake_service = IntakeService(llm)
     app.state.interview_service = InterviewService(llm)
     app.state.contract_service = ContractService(llm)
-    app.state.matching_engine = MatchingEngine(embeddings, index)
+    matching_engine = MatchingEngine(embeddings, index)
+    app.state.matching_engine = matching_engine
+    app.state.team_builder = TeamBuilderService(llm, matching_engine)
     app.state.trust_service = TrustScoreService()
     app.state.audit_service = AuditService()
     app.state.privacy_service = PrivacyService()

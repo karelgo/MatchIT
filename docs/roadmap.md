@@ -40,9 +40,13 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - Identity verification flow; trust score factors go evidence-based.
 
 ## Epic 4 — Matching v2
+- ✅ Team builder (Iteration 7): multi-role assignments are allocated seat by
+  seat rather than ranked as one list — each role is scored against its own
+  skills, nobody occupies two seats, scarce roles are filled first, and a seat
+  stays visibly open rather than being filled by someone who cannot do the job.
+  An agent then reviews the allocation for coverage, strengths and gaps.
 - Persisted assignment embeddings, LLM re-rank stage with rationale, feedback loop
-  from match decisions into ranking weights, team-builder agent (multi-role
-  assignments assembled as complementary teams).
+  from match decisions into ranking weights.
 
 ## Epic 5 — AI interviews
 - ✅ Interview agent (Iteration 4): questions generated from the assignment plus a
@@ -83,9 +87,8 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 4 — matching v2 (team builder).** The concierge already extracts multi-role
-assignments (`2× Fabric architect`), but the engine ranks individuals and ignores
-`count` entirely — a company asking for a team gets a list. A team-builder agent
-that assembles complementary specialists against a multi-role assignment is the
-most visible remaining gap between what intake promises and what matching
-delivers.
+**Epic 3 — supply-side intelligence.** Skills are still self-reported: a
+specialist types "Microsoft Fabric, level 9" and the matching engine believes
+them. CV parsing, GitHub analysis and certification validation turn the skill
+graph into something evidence-backed, which is what makes the trust score and the
+interview gap analysis genuinely trustworthy rather than merely computed.
