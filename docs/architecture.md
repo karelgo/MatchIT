@@ -38,8 +38,9 @@ Engine in seconds.
 
 - **PostgreSQL** — system of record (users, profiles, assignments, matches,
   contracts, payments).
-- **Redis** — session/cache, rate limiting, pub/sub for real-time chat and
-  notification fan-out.
+- **Redis** — session/cache, rate limiting, and pub/sub fan-out for real-time chat
+  (and later notifications), behind the `PubSub` protocol so any replica can
+  deliver a message published by any other.
 - **Qdrant** — vector database for semantic retrieval of specialists and
   assignments.
 - **LLM providers** — abstracted behind `app.ai.llm.ChatModel`; provider choice is
@@ -68,7 +69,10 @@ Rules:
    work.
 3. **Vector search behind `VectorIndex`.** Qdrant in production, an in-memory
    implementation in tests. Swapping vector DBs is a one-file change.
-4. **Everything async.** SQLAlchemy async engine, httpx, async provider SDKs.
+4. **Broadcast behind `PubSub`.** Redis in production, in-memory for tests and
+   single-node development. Chat persists first and publishes second, so live
+   delivery is best-effort while history is durable.
+5. **Everything async.** SQLAlchemy async engine, httpx, async provider SDKs.
 
 ## Scaling path
 

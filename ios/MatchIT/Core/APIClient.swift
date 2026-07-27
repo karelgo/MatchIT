@@ -16,7 +16,7 @@ enum APIError: LocalizedError {
 
 /// Async/await HTTP client with automatic refresh-token rotation.
 actor APIClient {
-    private let baseURL: URL
+    nonisolated let baseURL: URL
     private let session: URLSession
     private let tokenStore: KeychainTokenStore
     private var tokens: StoredTokens?
@@ -32,9 +32,10 @@ actor APIClient {
 
         decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .matchITTimestamp
         encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
     }
 
     var hasSession: Bool { tokens != nil }
@@ -125,6 +126,42 @@ actor APIClient {
             "matches/\(matchId.uuidString.lowercased())/decision",
             body: ["decision": decision.rawValue]
         )
+    }
+
+    // MARK: - Chat
+
+    func conversations() async throws -> [Conversation] {
+        try await get("conversations")
+    }
+
+    func messages(conversationId: UUID) async throws -> [ChatMessage] {
+        try await get("conversations/\(conversationId.uuidString.lowercased())/messages")
+    }
+
+    func sendMessage(conversationId: UUID, content: String) async throws -> ChatMessage {
+        try await post(
+            "conversations/\(conversationId.uuidString.lowercased())/messages",
+            body: ["content": content]
+        )
+    }
+
+    /// Live-chat socket URL. Refreshes the session first so the token embedded in
+    /// the query string is not about to expire mid-connection.
+    func chatSocketURL(conversationId: UUID) async throws -> URL {
+        if tokens == nil { throw APIError.unauthorized }
+        try await refreshSession()
+        guard let access = tokens?.accessToken,
+              var components = URLComponents(
+                  url: baseURL.appending(
+                      path: "ws/conversations/\(conversationId.uuidString.lowercased())"
+                  ),
+                  resolvingAgainstBaseURL: false
+              )
+        else { throw APIError.unauthorized }
+        components.scheme = components.scheme == "https" ? "wss" : "ws"
+        components.queryItems = [URLQueryItem(name: "token", value: access)]
+        guard let url = components.url else { throw APIError.unauthorized }
+        return url
     }
 
     // MARK: - Transport

@@ -175,3 +175,21 @@ struct Match: Codable, Identifiable, Sendable {
     let specialist: MatchSpecialistView
     let assignment: AssignmentBrief
 }
+
+struct Conversation: Codable, Identifiable, Sendable, Hashable {
+    let id: UUID
+    let matchId: UUID
+    let counterpartName: String
+    let assignmentTitle: String
+    let lastMessage: String?
+    let lastMessageAt: Date?
+}
+
+struct ChatMessage: Codable, Identifiable, Sendable, Hashable {
+    let id: UUID
+    let conversationId: UUID
+    let senderId: UUID
+    let senderName: String
+    let content: String
+    let createdAt: Date
+}

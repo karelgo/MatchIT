@@ -27,9 +27,11 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   back into extraction over the full transcript (`POST /assignments/{id}/refine`),
   the dialogue is persisted per assignment, and missing budget/duration are
   AI-estimated from EU market rates and flagged as estimates.
+- ✅ Real-time chat on mutual match (Iteration 3): a conversation opens
+  automatically when both sides accept; REST history + WebSocket live delivery
+  fanned out over `PubSub` (Redis in production), with the iOS Messages tab.
 - Team composition proposals from the concierge.
-- Real-time chat on mutual match (WebSocket + Redis pub/sub), AI assistant in
-  thread, code snippets & diagram attachments.
+- AI assistant in thread, code snippets & diagram attachments.
 - Push notifications (APNs): new matches, messages, availability requests.
 
 ## Epic 3 — Supply-side intelligence
@@ -70,8 +72,10 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 
 ## Next up (recommended)
 
-**Epic 2, story 2 — real-time chat on mutual match.** Mutual matches currently
-dead-end at "chat unlocked"; a conversations/messages model, WebSocket endpoint
-with Redis pub/sub fan-out, and the iOS chat surface complete the core loop's
-hand-off from matching to collaboration, and lay the transport groundwork for the
-AI interview agent (Epic 5).
+**Epic 5, story 1 — the AI interview agent.** Chat now carries the conversation
+between a matched company and specialist, which is exactly the transport an AI
+interviewer needs. Generating interview questions from the assignment plus the
+candidate's skill-graph gaps, running them in-thread, and returning a scored
+summary is the single biggest remaining step toward "AI does 90% of the
+recruiting" — and it feeds the trust score's `interview_score` factor, which is
+already wired but always zero today.

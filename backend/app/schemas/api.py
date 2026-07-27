@@ -1,13 +1,26 @@
 """Request/response contracts for API v1."""
 
 import uuid
-from datetime import date, datetime
-from typing import Literal
+from datetime import UTC, date, datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
 
 from app.ai.schemas import AssignmentRequirements
 from app.models import AssignmentStatus, Decision, MatchStatus, RemotePreference, UserRole
+
+
+def _as_utc(value: datetime) -> datetime:
+    """Normalise to tz-aware UTC.
+
+    Postgres (`DateTime(timezone=True)`) returns aware datetimes, SQLite returns
+    naive ones. Clients must never have to guess a timezone, so every timestamp
+    leaving the API goes through here.
+    """
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+UTCDatetime = Annotated[datetime, AfterValidator(_as_utc)]
 
 # ---- auth ----
 
@@ -42,7 +55,7 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     is_verified: bool
-    created_at: datetime
+    created_at: UTCDatetime
 
 
 class TokenResponse(BaseModel):
@@ -133,7 +146,7 @@ class AssignmentResponse(BaseModel):
     requirements: AssignmentRequirements
     intake_history: list[IntakeMessage]
     status: AssignmentStatus
-    created_at: datetime
+    created_at: UTCDatetime
 
 
 class MatchSpecialistView(BaseModel):
@@ -175,3 +188,29 @@ class MatchResponse(BaseModel):
 
 class MatchDecisionRequest(BaseModel):
     decision: Decision = Field(description="accepted or rejected")
+
+
+# ---- chat ----
+
+
+class MessageCreateRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class MessageResponse(BaseModel):
+    id: uuid.UUID
+    conversation_id: uuid.UUID
+    sender_id: uuid.UUID
+    sender_name: str
+    content: str
+    created_at: UTCDatetime
+
+
+class ConversationResponse(BaseModel):
+    id: uuid.UUID
+    match_id: uuid.UUID
+    counterpart_name: str
+    assignment_title: str
+    last_message: str | None
+    last_message_at: UTCDatetime | None
+    created_at: UTCDatetime

@@ -58,6 +58,24 @@ Name, industry, size, country/city, website, description, verification status.
 | company_decision / specialist_decision | enum | pending, accepted, rejected |
 | status | enum | suggested, mutual, closed — mutual when both accept |
 
+### conversations
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| match_id | FK → matches, unique | one thread per match; created when the match turns mutual |
+
+### messages
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| conversation_id | FK → conversations | indexed with created_at for transcript paging |
+| sender_id | FK → users | |
+| content | text | ≤ 4000 chars |
+
+Live delivery is a broadcast over `PubSub` (Redis channel `chat:{conversation_id}`),
+not a database concern — messages are persisted first, then published, so a dropped
+socket never loses history.
+
 ### refresh_tokens
 token_hash (SHA-256, unique), user_id FK, expires_at, revoked_at. Rotation revokes
 the old row atomically with issuing the new one.
@@ -71,7 +89,12 @@ the old row atomically with issuing the new one.
 Assignments are embedded on demand for recall queries; persisted assignment
 embeddings arrive with the re-rank stage (Epic 4).
 
+All timestamps leaving the API are normalised to tz-aware UTC by the `UTCDatetime`
+annotation in `app/schemas/api.py`. Postgres returns aware datetimes and SQLite
+returns naive ones; without that boundary the same endpoint would emit two
+different shapes and clients would have to guess the zone.
+
 ## Roadmap tables (see docs/roadmap.md)
 
-conversations & messages (chat), interviews (AI interview transcripts + scores),
-contracts, payments/escrow ledger, reviews, notifications, audit_log.
+interviews (AI interview transcripts + scores), contracts, payments/escrow ledger,
+reviews, notifications, audit_log.

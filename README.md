@@ -66,7 +66,11 @@ Point the app at a running backend via the `API_BASE_URL` setting in
 
 ## Status
 
-Iteration 1 (Foundation) is complete: architecture, backend core (auth, profiles,
-AI assignment intake, matching engine, trust score, vector search), iOS app
-foundation (design system, auth, concierge intake, match deck), infrastructure and
-CI. See [docs/roadmap.md](docs/roadmap.md) for what ships next.
+Three iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
+
+1. **Foundation** — auth (JWT + Apple), profiles, AI assignment intake, explainable
+   matching engine, trust score, vector search, infrastructure and CI.
+2. **Multi-turn concierge** — the assignment converges through dialogue; missing
+   budget/duration are AI-estimated from EU market rates and flagged as estimates.
+3. **Real-time chat** — a conversation opens on every mutual match, with REST
+   history and WebSocket live delivery, plus the iOS Messages tab.

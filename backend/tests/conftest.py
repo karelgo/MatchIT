@@ -13,6 +13,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import create_app
 from app.services.apple import AppleIdentity
+from app.services.pubsub import InMemoryPubSub
 from app.services.vector import InMemoryVectorIndex
 
 
@@ -35,6 +36,7 @@ def test_settings() -> Settings:
         llm_provider="fake",
         embedding_provider="fake",
         vector_backend="memory",
+        pubsub_backend="memory",
         database_url="sqlite+aiosqlite://",
     )
 
@@ -62,6 +64,7 @@ async def client(test_settings, fake_chat, vector_index) -> AsyncIterator[AsyncC
         embedding_model=FakeEmbeddingModel(),
         vector_index=vector_index,
         apple_verifier=FakeAppleVerifier(),
+        pubsub=InMemoryPubSub(),
     )
 
     async def override_get_db():

@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -198,6 +198,7 @@ async def decide_match(
     body: MatchDecisionRequest,
     user: CurrentUser,
     db: DbSession,
+    request: Request,
 ):
     if body.decision == Decision.PENDING:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "decision must be final")
@@ -226,5 +227,7 @@ async def decide_match(
         match.status = MatchStatus.CLOSED
     elif match.company_decision == Decision.ACCEPTED == match.specialist_decision:
         match.status = MatchStatus.MUTUAL
+        # a mutual match opens the chat thread
+        await request.app.state.chat_service.ensure_conversation(db, match.id)
     await db.commit()
     return match

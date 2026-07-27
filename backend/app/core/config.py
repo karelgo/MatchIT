@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
 
+    pubsub_backend: str = "redis"  # redis | memory
     vector_backend: str = "qdrant"  # qdrant | memory
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
