@@ -10,6 +10,13 @@ settings:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # The simulator shares the Mac's network stack, so localhost reaches the backend.
+    # A device does not: it needs a hostname it can resolve over the LAN. The .local
+    # Bonjour name is used rather than a bare IP because App Transport Security
+    # exempts .local under NSAllowsLocalNetworking, but not private IP ranges.
+    # This value is machine-specific — override it for your own Mac.
+    MATCHIT_API_BASE_URL[sdk=iphonesimulator*]: http://localhost:8000/api/v1
+    MATCHIT_API_BASE_URL[sdk=iphoneos*]: http://Karels-MacBook-Pro.local:8000/api/v1
 
 targets:
   MatchIT:
@@ -38,6 +45,10 @@ targets:
           by speaking instead of typing.
         NSMicrophoneUsageDescription: >-
           The microphone is used only while you dictate to the AI concierge.
+        APIBaseURL: $(MATCHIT_API_BASE_URL)
+        # iOS 14+ refuses LAN connections without this; the phone prompts on first use.
+        NSLocalNetworkUsageDescription: >-
+          MatchIT connects to the MatchIT backend running on your local network.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     settings:
