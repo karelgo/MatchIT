@@ -49,6 +49,7 @@ def build_sync_client(tmp_path) -> TestClient:
         vector_index=InMemoryVectorIndex(),
         apple_verifier=FakeAppleVerifier(),
         pubsub=InMemoryPubSub(),
+        sessionmaker=sessionmaker,
     )
 
     async def override_get_db():

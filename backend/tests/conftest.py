@@ -65,6 +65,7 @@ async def client(test_settings, fake_chat, vector_index) -> AsyncIterator[AsyncC
         vector_index=vector_index,
         apple_verifier=FakeAppleVerifier(),
         pubsub=InMemoryPubSub(),
+        sessionmaker=sessionmaker,
     )
 
     async def override_get_db():

@@ -4,11 +4,13 @@ can construct the app with fakes."""
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.ai.embeddings import EmbeddingModel, build_embedding_model
 from app.ai.llm import ChatModel, build_chat_model
 from app.api.v1 import assignments, auth, chat, profiles
 from app.core.config import Settings, get_settings
+from app.db.session import get_sessionmaker
 from app.services.apple import AppleIdentityVerifier, JWKSAppleVerifier
 from app.services.auth import AuthService
 from app.services.chat import ChatService
@@ -31,6 +33,7 @@ def create_app(
     vector_index: VectorIndex | None = None,
     apple_verifier: AppleIdentityVerifier | None = None,
     pubsub: PubSub | None = None,
+    sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title=settings.app_name, version="0.1.0", debug=settings.debug)
@@ -52,6 +55,9 @@ def create_app(
     app.state.matching_engine = MatchingEngine(embeddings, index)
     app.state.trust_service = TrustScoreService()
     app.state.chat_service = ChatService(pubsub or build_pubsub(settings))
+    # WebSockets open their own short-lived sessions rather than holding a
+    # request-scoped one for the socket's lifetime (see api/v1/chat.py).
+    app.state.sessionmaker = sessionmaker or get_sessionmaker()
 
     api_prefix = "/api/v1"
     app.include_router(auth.router, prefix=api_prefix)

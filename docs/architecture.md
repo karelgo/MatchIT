@@ -86,6 +86,14 @@ Matching is embarrassingly parallel (per-assignment) and is the first candidate 
 worker extraction: `POST /assignments/{id}/matches` already runs through a service
 boundary that can be moved behind a queue without API changes.
 
+**Chat sockets hold no database connection while idle.** The natural FastAPI shape
+— a request-scoped `Depends(get_db)` session — would pin one pooled connection per
+open socket, and chat sockets are idle almost all of the time; the pool would be
+exhausted long before the server ran out of sockets. The WebSocket handler instead
+opens a short-lived session per operation (connect-time authorization, then one per
+inbound message). The side benefit is that authorization is re-checked on every
+message, so revoking access takes effect immediately rather than at reconnect.
+
 ## iOS architecture
 
 - **Swift 6, SwiftUI, iOS 17+**, MVVM with the `@Observable` macro. We deliberately
