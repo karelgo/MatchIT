@@ -88,7 +88,7 @@ call sites and fakes are complete.
 
 ## Status
 
-Twelve iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
+Thirteen iterations shipped — see [docs/roadmap.md](docs/roadmap.md) for what's next.
 
 1. **Foundation** — auth (JWT + Apple), profiles, AI assignment intake, explainable
    matching engine, trust score, vector search, infrastructure and CI.
