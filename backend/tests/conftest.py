@@ -19,6 +19,7 @@ from app.services.notifications import FakePushSender
 from app.services.payments import FakePaymentProvider
 from app.services.pubsub import InMemoryPubSub
 from app.services.ratelimit import InMemoryRateLimiter
+from app.services.transcription import FakeTranscriber
 from app.services.usage import InMemoryUsageCounter
 from app.services.vector import InMemoryVectorIndex
 
@@ -62,6 +63,7 @@ def test_settings() -> Settings:
         usage_counter_backend="memory",
         payment_provider="fake",
         push_backend="fake",
+        transcription_provider="fake",
         login_rate_limit=50,
         database_url="sqlite+aiosqlite://",
     )
@@ -85,6 +87,11 @@ def push_sender() -> FakePushSender:
 @pytest.fixture
 def payment_provider() -> FakePaymentProvider:
     return FakePaymentProvider()
+
+
+@pytest.fixture
+def transcriber() -> FakeTranscriber:
+    return FakeTranscriber()
 
 
 @pytest.fixture
@@ -131,7 +138,13 @@ def github_client() -> FakeGitHubClient:
 
 @pytest.fixture
 async def client(
-    test_settings, fake_chat, vector_index, github_client, payment_provider, push_sender
+    test_settings,
+    fake_chat,
+    vector_index,
+    github_client,
+    payment_provider,
+    push_sender,
+    transcriber,
 ) -> AsyncIterator[AsyncClient]:
     engine = create_async_engine("sqlite+aiosqlite://")
     enable_sqlite_foreign_keys(engine)
@@ -151,6 +164,7 @@ async def client(
         usage_counter=InMemoryUsageCounter(),
         payment_provider=payment_provider,
         push_sender=push_sender,
+        transcriber=transcriber,
         sessionmaker=sessionmaker,
     )
 

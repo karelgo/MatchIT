@@ -1,5 +1,6 @@
 import enum
 import uuid
+from datetime import datetime
 
 from sqlalchemy import Enum, Float, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -67,6 +68,11 @@ class Match(TimestampedBase):
     specialist_decision: Mapped[Decision] = mapped_column(
         Enum(Decision, native_enum=False, length=10), default=Decision.PENDING
     )
+    # When each side decided. `updated_at` cannot stand in for these: it moves on
+    # any write, and a transparency report has to state when the human decided,
+    # not when the row was last touched.
+    company_decided_at: Mapped[datetime | None] = mapped_column(default=None)
+    specialist_decided_at: Mapped[datetime | None] = mapped_column(default=None)
     status: Mapped[MatchStatus] = mapped_column(
         Enum(MatchStatus, native_enum=False, length=10), default=MatchStatus.SUGGESTED
     )

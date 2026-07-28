@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     foundry_api_key: str = ""
     foundry_model: str = ""
 
+    # Spoken interview answers are transcribed and scored as text; the audio is
+    # never stored. "off" degrades voice input only — typing always works.
+    transcription_provider: str = "openai"  # openai | fake | off
+    transcription_model: str = "whisper-1"
+
     embedding_provider: str = "openai"  # openai | fake
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536

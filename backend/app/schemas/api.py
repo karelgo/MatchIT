@@ -228,6 +228,10 @@ class MatchDecisionRequest(BaseModel):
 
 # ---- AI interview ----
 
+# Typed or dictated. A spoken answer is transcribed and the text is what is stored
+# and scored; no audio is retained, and no system infers anything from delivery.
+InputMode = Literal["text", "voice"]
+
 
 class InterviewQuestionView(BaseModel):
     question: str
@@ -238,6 +242,10 @@ class InterviewQuestionView(BaseModel):
 class TranscriptEntry(BaseModel):
     question: str
     answer: str
+    # How the answer reached us. Recorded for the transparency report, never
+    # scored — see `InterviewAnswerRequest.input_mode`. Defaulted because
+    # transcripts written before voice input existed have no such key.
+    input_mode: InputMode = "text"
 
 
 class AnswerScoreView(BaseModel):
@@ -261,6 +269,14 @@ class AssessmentView(BaseModel):
 
 class InterviewAnswerRequest(BaseModel):
     answer: NonBlankStr = Field(min_length=1, max_length=8000)
+    input_mode: InputMode = Field(
+        default="text",
+        description=(
+            "Whether the specialist typed this or dictated it. Provenance only: the "
+            "assessor scores content and is explicitly forbidden to weigh delivery, "
+            "so this can never change a score."
+        ),
+    )
 
 
 class InterviewResponse(BaseModel):
@@ -403,7 +419,108 @@ class InvoiceResponse(BaseModel):
     created_at: UTCDatetime
 
 
+# ---- transparency, feedback and evidence ----
+
+
+class TransparencyReportResponse(BaseModel):
+    """The signed report, plus the document rendered from it.
+
+    `report` is deliberately an open dict: it is the signed artifact, and pinning
+    it to a response model here would let a schema change silently reshape what
+    the signature covers. The rendering is derived from it, never from the ORM.
+    """
+
+    report: dict
+    markdown: str
+
+
+class TransparencyVerifyRequest(BaseModel):
+    report: dict
+
+
+class TransparencyVerifyResponse(BaseModel):
+    valid: bool
+    report_id: str | None
+    detail: str
+
+
+class AISystemCard(BaseModel):
+    key: str
+    name: str
+    kind: str
+    purpose: str
+    definition_fingerprint: str
+    inputs: list[str]
+    used_for: str
+    human_oversight: str
+    limitations: list[str]
+    personal_data: list[str]
+    metering_label: str | None
+    output_schema: str | None
+
+
+class AISystemsResponse(BaseModel):
+    statement: str
+    systems: list[AISystemCard]
+    markdown: str
+
+
+class FeedbackFactorView(BaseModel):
+    component: str
+    weight: float
+    score: float
+    points_lost: float
+    what_it_measures: str
+    what_happened: str
+    what_would_help: str | None
+
+
+class MatchFeedbackResponse(BaseModel):
+    match_id: uuid.UUID
+    outcome: str
+    headline: str
+    total_score: float
+    rank: int
+    candidates_scored: int
+    cost_you_most: list[FeedbackFactorView]
+    worked_in_your_favour: list[FeedbackFactorView]
+    interview_score: float | None
+    interview_strengths: list[str]
+    interview_development_areas: list[str]
+    note: str
+
+
+class EvidencePackResponse(BaseModel):
+    pack: dict
+    markdown: str
+
+
 # ---- admin ----
+
+
+class BiasCohortView(BaseModel):
+    cohort: str
+    matches: int
+    decided: int
+    selected: int
+    selection_rate: float | None
+    impact_ratio: float | None
+    mean_match_score: float | None
+    mean_interview_score: float | None
+    sufficient_data: bool
+
+
+class BiasDimensionView(BaseModel):
+    dimension: str
+    description: str
+    cohorts: list[BiasCohortView]
+    flagged: list[str]
+
+
+class BiasReportView(BaseModel):
+    dimensions: list[BiasDimensionView]
+    minimum_cohort_size: int
+    notes: list[str]
 
 
 class FunnelView(BaseModel):

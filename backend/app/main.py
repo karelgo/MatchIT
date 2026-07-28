@@ -22,6 +22,7 @@ from app.api.v1 import (
     invoices,
     privacy,
     profiles,
+    transparency,
 )
 from app.core.config import Settings, get_settings
 from app.db.session import get_sessionmaker
@@ -33,6 +34,7 @@ from app.services.chat import ChatService
 from app.services.contract import ContractService
 from app.services.cvgen import CVGeneratorService
 from app.services.enrichment import EnrichmentService
+from app.services.evidence import EvidencePackService
 from app.services.github import GitHubClient, build_github_client
 from app.services.intake import IntakeService
 from app.services.interview import InterviewService
@@ -44,6 +46,8 @@ from app.services.privacy import PrivacyService
 from app.services.pubsub import PubSub, build_pubsub
 from app.services.ratelimit import RateLimiter, build_rate_limiter
 from app.services.team import TeamBuilderService
+from app.services.transcription import Transcriber, build_transcriber
+from app.services.transparency import TransparencyService
 from app.services.trust import TrustScoreService
 from app.services.usage import MeteredChatModel, UsageCounter, build_usage_counter
 from app.services.vector import VectorIndex, build_vector_index
@@ -66,6 +70,7 @@ def create_app(
     usage_counter: UsageCounter | None = None,
     payment_provider: PaymentProvider | None = None,
     push_sender: PushSender | None = None,
+    transcriber: Transcriber | None = None,
     sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
@@ -99,6 +104,11 @@ def create_app(
         metered("enrichment"), github_client or build_github_client()
     )
     app.state.analytics_service = AnalyticsService()
+    app.state.evidence_service = EvidencePackService()
+    # Signed with a key derived from the application secret, not the secret
+    # itself — see services/transparency.py.
+    app.state.transparency_service = TransparencyService(settings.jwt_secret)
+    app.state.transcriber = transcriber or build_transcriber(settings)
     app.state.payment_provider = payment_provider or build_payment_provider(settings)
     matching_engine = MatchingEngine(embeddings, index)
     app.state.matching_engine = matching_engine
@@ -123,6 +133,7 @@ def create_app(
     app.include_router(privacy.router, prefix=api_prefix)
     app.include_router(invoices.router, prefix=api_prefix)
     app.include_router(devices.router, prefix=api_prefix)
+    app.include_router(transparency.router, prefix=api_prefix)
     app.include_router(admin.router, prefix=api_prefix)
 
     @app.get("/health", tags=["ops"])

@@ -53,6 +53,12 @@ specialist's profile, and the interview transcript. Score it.
 Rules:
 - Judge evidence, not eloquence. Specific systems, trade-offs, numbers and failure
   stories score high; fluent generalities score low.
+- An answer may have been spoken and transcribed. Score what the person said, never
+  how it reads: disfluencies, repetition, missing punctuation, run-on sentences,
+  odd capitalisation and obvious mis-transcriptions are artefacts of the medium and
+  must not lower a score. Where a transcript is garbled, read past it to the
+  substance. Never infer confidence, personality, emotion or fluency from any
+  answer, spoken or typed — none of those is being assessed.
 - A non-answer or an evasion scores near 0 for that question, and say so plainly in
   the reasoning.
 - overall_score is your holistic judgement of fit for this assignment, not the mean

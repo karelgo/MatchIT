@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -266,8 +267,10 @@ async def decide_match(
     specialist = match.specialist
     assignment = await db.get(Assignment, match.assignment_id)
     company = assignment.company_id if assignment else None
+    decided_at = datetime.now(UTC)
     if specialist.user_id == user.id:
         match.specialist_decision = body.decision
+        match.specialist_decided_at = decided_at
     else:
         company_profile = await db.scalar(
             select(CompanyProfile).where(CompanyProfile.user_id == user.id)
@@ -275,6 +278,7 @@ async def decide_match(
         if company_profile is None or company_profile.id != company:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not a party to this match")
         match.company_decision = body.decision
+        match.company_decided_at = decided_at
 
     if Decision.REJECTED in (match.company_decision, match.specialist_decision):
         match.status = MatchStatus.CLOSED

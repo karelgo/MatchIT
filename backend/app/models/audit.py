@@ -16,6 +16,8 @@ class AuditAction(enum.StrEnum):
     ACCOUNT_DELETED = "account_deleted"
     USER_SUSPENDED = "user_suspended"
     USER_REINSTATED = "user_reinstated"
+    TRANSPARENCY_REPORT_ISSUED = "transparency_report_issued"
+    EVIDENCE_PACK_ISSUED = "evidence_pack_issued"
 
 
 class AuditLog(TimestampedBase):

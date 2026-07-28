@@ -7,10 +7,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.schemas import AssignmentRequirements, ContractDraft
-from app.api.deps import CurrentUser, DbSession, load_match, viewer_role
-from app.models import Contract, ContractStatus, MatchStatus
-from app.schemas.api import ContractCreateRequest, ContractDraftView, ContractResponse
+from app.api.deps import AuditDep, CurrentUser, DbSession, load_match, viewer_role
+from app.models import AuditAction, Contract, ContractStatus, MatchStatus
+from app.schemas.api import (
+    ContractCreateRequest,
+    ContractDraftView,
+    ContractResponse,
+    EvidencePackResponse,
+)
 from app.services.contract import ContractService, ContractTerms
+from app.services.evidence import EvidencePackService, evidence_pack_markdown
 
 router = APIRouter(tags=["contracts"])
 
@@ -110,7 +116,11 @@ async def get_contract(match_id: uuid.UUID, user: CurrentUser, db: DbSession):
 
 @router.post("/matches/{match_id}/contract/sign", response_model=ContractResponse)
 async def sign_contract(
-    match_id: uuid.UUID, user: CurrentUser, db: DbSession, request: Request
+    match_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    audit: AuditDep,
+    request: Request,
 ):
     """Record this party's signature; the second signature activates the contract."""
     match = await load_match(db, match_id)
@@ -133,6 +143,19 @@ async def sign_contract(
 
     if contract.is_fully_signed:
         contract.status = ContractStatus.ACTIVE
+
+    # A signature is the moment the engagement becomes binding, which makes it the
+    # single event most worth being able to evidence later. It is also what the
+    # engagement evidence pack reads back as its signature trail.
+    await audit.record(
+        db,
+        AuditAction.CONTRACT_SIGNED,
+        actor_user_id=user.id,
+        target_type="contract",
+        target_id=contract.id,
+        request=request,
+        context={"party": viewer, "activated": contract.is_fully_signed},
+    )
     await db.commit()
 
     counterparty = (
@@ -142,3 +165,38 @@ async def sign_contract(
         db, counterparty, match_id=match_id, is_active=contract.is_fully_signed
     )
     return _to_response(contract, viewer)
+
+
+@router.get("/matches/{match_id}/evidence-pack", response_model=EvidencePackResponse)
+async def evidence_pack(
+    match_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    audit: AuditDep,
+    request: Request,
+):
+    """Assemble the engagement evidence pack for this contract.
+
+    Available to both parties, and to both from the moment the contract exists —
+    the point of the pack is that it is already in the drawer when someone asks,
+    not that it can be assembled afterwards.
+    """
+    match = await load_match(db, match_id)
+    viewer = viewer_role(match, user)
+    contract = await _get_contract(db, match_id)
+    if contract is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no contract for this match")
+
+    service: EvidencePackService = request.app.state.evidence_service
+    pack = await service.build(db, match, contract)
+    await audit.record(
+        db,
+        AuditAction.EVIDENCE_PACK_ISSUED,
+        actor_user_id=user.id,
+        target_type="contract",
+        target_id=contract.id,
+        request=request,
+        context={"party": viewer},
+    )
+    await db.commit()
+    return EvidencePackResponse(pack=pack, markdown=evidence_pack_markdown(pack))

@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from app.api.deps import CurrentUser, DbSession, load_match, viewer_role
 from app.models import (
     Interview,
     InterviewStatus,
+    Match,
     MatchStatus,
     SpecialistProfile,
 )
@@ -21,6 +22,12 @@ from app.schemas.api import (
     TranscriptEntry,
 )
 from app.services.interview import InterviewService
+from app.services.transcription import (
+    MAX_AUDIO_BYTES,
+    Transcriber,
+    TranscriptionError,
+    check_audio,
+)
 from app.services.trust import TrustScoreService, TrustSignals
 
 router = APIRouter(tags=["interviews"])
@@ -118,9 +125,51 @@ async def answer_interview(
     request: Request,
 ):
     """Submit the answer to the current question; the last answer triggers scoring."""
+    match, interview = await _open_interview(db, match_id, user)
+    return await _record_answer(
+        match, interview, body.answer, body.input_mode, db, interviews, request
+    )
+
+
+@router.post("/matches/{match_id}/interview/answer/audio", response_model=InterviewResponse)
+async def answer_interview_with_audio(
+    match_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    interviews: InterviewDep,
+    request: Request,
+    file: UploadFile,
+    language: str | None = None,
+):
+    """Answer by voice. The audio is transcribed and then discarded.
+
+    Only the transcript is stored, scored and reported — nothing is inferred from
+    the recording itself, which is why the recording does not outlive the request.
+    Clients that can transcribe on-device should do that instead and post text with
+    `input_mode: "voice"`; this endpoint exists for the ones that cannot.
+    """
+    match, interview = await _open_interview(db, match_id, user)
+
+    data = await file.read(MAX_AUDIO_BYTES + 1)
+    transcriber: Transcriber = request.app.state.transcriber
+    try:
+        check_audio(data, file.filename or "")
+        answer = await transcriber.transcribe(
+            data, filename=file.filename or "answer.m4a", language=language
+        )
+    except TranscriptionError as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(error)) from error
+    del data
+
+    return await _record_answer(match, interview, answer, "voice", db, interviews, request)
+
+
+async def _open_interview(
+    db: AsyncSession, match_id: uuid.UUID, user
+) -> tuple[Match, Interview]:
+    """Load the match and its in-progress interview, or explain why not."""
     match = await load_match(db, match_id)
-    viewer = viewer_role(match, user)
-    if viewer != "specialist":
+    if viewer_role(match, user) != "specialist":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "only the specialist answers")
 
     interview = await _get_interview(db, match_id)
@@ -128,16 +177,31 @@ async def answer_interview(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no interview for this match")
     if interview.status == InterviewStatus.COMPLETED:
         raise HTTPException(status.HTTP_409_CONFLICT, "interview already completed")
+    if len(interview.transcript) >= len(InterviewPlan.model_validate(interview.plan).questions):
+        raise HTTPException(status.HTTP_409_CONFLICT, "no question pending")
+    return match, interview
 
+
+async def _record_answer(
+    match: Match,
+    interview: Interview,
+    answer: str,
+    input_mode: str,
+    db: AsyncSession,
+    interviews: InterviewService,
+    request: Request,
+) -> InterviewResponse:
     plan = InterviewPlan.model_validate(interview.plan)
     answered = len(interview.transcript)
-    if answered >= len(plan.questions):
-        raise HTTPException(status.HTTP_409_CONFLICT, "no question pending")
 
     # JSON columns need a new list object for SQLAlchemy to detect the change
     interview.transcript = [
         *interview.transcript,
-        {"question": plan.questions[answered].question, "answer": body.answer},
+        {
+            "question": plan.questions[answered].question,
+            "answer": answer,
+            "input_mode": input_mode,
+        },
     ]
 
     if len(interview.transcript) == len(plan.questions):
@@ -149,7 +213,7 @@ async def answer_interview(
         _apply_trust_score(request, match.specialist, assessment.overall_score)
 
     await db.commit()
-    return _to_response(interview, viewer)
+    return _to_response(interview, "specialist")
 
 
 def _apply_trust_score(

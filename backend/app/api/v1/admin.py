@@ -16,6 +16,7 @@ from app.schemas.api import (
     AdminAuditEntry,
     AdminMetricsResponse,
     AdminUserView,
+    BiasReportView,
     FunnelView,
 )
 from app.services.analytics import AnalyticsService
@@ -53,6 +54,18 @@ async def metrics(admin: AdminUser, db: DbSession, request: Request):
         mean_time_to_contract_hours=await analytics.time_to_contract_hours(db),
         ai_calls_by_feature=await request.app.state.usage_counter.totals(),
     )
+
+
+@router.get("/bias", response_model=BiasReportView)
+async def bias(admin: AdminUser, db: DbSession, request: Request):
+    """Outcome disparity across observable cohorts.
+
+    The AI Act asks deployers of high-risk recruitment systems for *continuous*
+    monitoring, so this is a live query rather than a report someone has to
+    remember to run.
+    """
+    analytics: AnalyticsService = request.app.state.analytics_service
+    return BiasReportView(**await analytics.bias(db))
 
 
 @router.get("/users", response_model=list[AdminUserView])
