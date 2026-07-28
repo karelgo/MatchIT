@@ -99,16 +99,23 @@ faces an ACLU discrimination complaint over AI video interviews.
 
 Every competitor will have to retrofit explainability. MatchIT was built with it:
 the score breakdown, the interview rationale, the audit log and the
-human-decides rule are load-bearing architecture, not a compliance layer.
+human-decides rule are load-bearing architecture, not a compliance layer. The
+Article 11 documentation is *generated from the prompts the product runs on*, so
+it cannot drift; the transparency report is an artifact of every hire rather
+than a report someone remembers to write; and there is no video interview to
+defend, because we read the case law and declined to build one.
 
 ---
 
 ## 7 · Traction & state
 
 - Full product loop live: intake → matching → interview → contract → escrow.
-- 159 automated tests; 36 API endpoints; iOS app; admin analytics with funnel,
+- 241 automated tests; 52 API endpoints; iOS app; admin analytics with funnel,
   conversion and time-to-contract in **hours** (because the promise is minutes,
-  a metric in days would hide the truth).
+  a metric in days would hide the truth), plus continuous bias monitoring.
+- Every hire produces a **signed AI transparency report** — how the candidate
+  was ranked, what the interview asked and why, who decided and when —
+  verifiable by anyone holding it, without a MatchIT account.
 - Pre-launch: waitlist open, private beta next.
 
 ---

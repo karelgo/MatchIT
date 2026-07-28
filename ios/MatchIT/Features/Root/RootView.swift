@@ -66,6 +66,20 @@ struct AccountView: View {
                     LabeledContent("Email", value: user.email)
                     LabeledContent("Role", value: user.role.displayName)
                 }
+                Section {
+                    NavigationLink {
+                        AISystemsView(api: api)
+                    } label: {
+                        Label("How the AI works", systemImage: "sparkles.rectangle.stack")
+                    }
+                } header: {
+                    Text("Transparency")
+                } footer: {
+                    Text(
+                        "Every automated system MatchIT runs, with its purpose, its limits and the human oversight applied to it."
+                    )
+                }
+
                 PrivacySection(api: api, onDeleted: onSignOut)
                 Section {
                     Button("Sign out", role: .destructive) { onSignOut() }

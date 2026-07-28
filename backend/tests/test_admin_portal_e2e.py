@@ -216,3 +216,40 @@ def test_portal_login_metrics_suspend_and_audit(live_server):
         timeout=5,
     )
     assert login.status_code == 401
+
+
+def test_bias_dashboard_renders_and_states_its_limits(live_server):
+    """The caveats must render above the numbers, not be buried under them.
+
+    A monitoring page read as "no flags, therefore no bias" would be worse than
+    having none, so the limits of the measurement are part of what is tested.
+    """
+    base_url, database_url = live_server
+    _seed(base_url, database_url)
+
+    with playwright_api.sync_playwright() as playwright:
+        browser = _launch_chromium(playwright)
+        page = browser.new_page()
+
+        page.goto(f"{base_url}/admin-portal")
+        page.fill("#email", "portal-admin@example.com")
+        page.fill("#password", "s3cure-password")
+        page.click("#login-button")
+        page.wait_for_selector("#funnel .bar-row")
+
+        page.click("#nav-bias")
+        page.wait_for_selector("#bias-dimensions .card")
+
+        notes = page.inner_text("#bias-notes")
+        assert "does not collect age, gender, ethnicity, nationality" in notes
+        assert "four-fifths rule" in notes
+
+        dimensions = page.inner_text("#bias-dimensions")
+        for dimension in ("experience band", "country", "works in dutch", "remote preference"):
+            assert dimension in dimensions
+        # no matches exist on this fixture, so nothing may be flagged
+        assert page.locator("#bias-dimensions .badge.flagged").count() == 0
+        assert page.inner_text("#bias-error") == ""
+
+        browser.close()
+

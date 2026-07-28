@@ -199,6 +199,11 @@ struct InterviewQuestion: Codable, Sendable, Hashable {
 struct TranscriptEntry: Codable, Sendable, Hashable {
     let question: String
     let answer: String
+    /// "text" or "voice". Provenance only — the assessor scores content, so how the
+    /// answer was given can never change the score.
+    let inputMode: String
+
+    var wasSpoken: Bool { inputMode == "voice" }
 }
 
 struct AnswerScore: Codable, Sendable, Hashable {
@@ -318,6 +323,179 @@ struct Contract: Codable, Identifiable, Sendable {
 
     var isActive: Bool { status == "active" }
     var awaitingMySignature: Bool { !signedByMe && !isActive }
+}
+
+// MARK: - Explainability
+//
+// The transparency report's body is typed here even though the API declares it as an
+// open object: the API leaves it open so a response model cannot silently reshape
+// what the signature covers, not because the shape is unknown. `test_ios_contract.py`
+// checks these against a real report, so the two cannot drift apart unnoticed.
+
+struct RankingComponent: Codable, Sendable, Hashable, Identifiable {
+    let component: String
+    let weight: Double
+    let score: Double
+    let contribution: Double
+    let howItIsMeasured: String
+
+    var id: String { component }
+}
+
+struct RankingExplanation: Codable, Sendable, Hashable {
+    let totalScore: Double
+    let rank: Int
+    let candidatesScored: Int
+    let components: [RankingComponent]
+    let method: String
+    let definitionFingerprint: String
+}
+
+struct ReportedQuestion: Codable, Sendable, Hashable, Identifiable {
+    let question: String
+    let skill: String
+    let askedBecause: String
+    let answered: Bool
+    let answerInputMode: String
+    let score: Double?
+    let reasoning: String?
+
+    var id: String { question }
+}
+
+struct InterviewExplanation: Codable, Sendable, Hashable {
+    let completed: Bool
+    let modality: String
+    let scoredOn: String
+    let gapSummary: String
+    let questions: [ReportedQuestion]
+    let overallScore: Double?
+    let strengths: [String]
+    let developmentAreas: [String]
+    let concerns: [String]
+    let recommendation: String?
+    let summary: String?
+}
+
+struct ReportedDecision: Codable, Sendable, Hashable, Identifiable {
+    let party: String
+    let decision: String
+    let decidedAt: String?
+    let madeBy: String?
+
+    var id: String { party }
+}
+
+struct ReportedSystem: Codable, Sendable, Hashable, Identifiable {
+    let key: String
+    let name: String
+    let kind: String
+    let definitionFingerprint: String
+
+    var id: String { key }
+}
+
+struct ReportSignature: Codable, Sendable, Hashable {
+    let algorithm: String
+    let value: String
+}
+
+struct ReportEngagement: Codable, Sendable, Hashable {
+    let company: String
+    let specialistReference: String
+    let specialistHeadline: String
+    let assignmentSummary: String
+}
+
+struct TransparencyReportBody: Codable, Sendable, Hashable {
+    let reportId: String
+    let statement: String
+    let engagement: ReportEngagement
+    let ranking: RankingExplanation
+    let interview: InterviewExplanation?
+    let decisions: [ReportedDecision]
+    let aiSystems: [ReportedSystem]
+    let humanOversight: String
+    let yourRights: [String]
+    let signature: ReportSignature
+}
+
+struct TransparencyReport: Codable, Sendable, Hashable {
+    /// The signed record.
+    let report: TransparencyReportBody
+    /// The same record rendered as the document a person reads or forwards.
+    let markdown: String
+}
+
+struct FeedbackFactor: Codable, Sendable, Hashable, Identifiable {
+    let component: String
+    let weight: Double
+    let score: Double
+    let pointsLost: Double
+    let whatItMeasures: String
+    let whatHappened: String
+    let whatWouldHelp: String?
+
+    var id: String { component }
+}
+
+struct MatchFeedback: Codable, Sendable, Hashable {
+    let matchId: UUID
+    let outcome: String
+    let headline: String
+    let totalScore: Double
+    let rank: Int
+    let candidatesScored: Int
+    let costYouMost: [FeedbackFactor]
+    let workedInYourFavour: [FeedbackFactor]
+    let interviewScore: Double?
+    let interviewStrengths: [String]
+    let interviewDevelopmentAreas: [String]
+    let note: String
+
+    var wasSelected: Bool { outcome == "matched" }
+}
+
+struct AISystemCard: Codable, Sendable, Hashable, Identifiable {
+    let key: String
+    let name: String
+    let kind: String
+    let purpose: String
+    let definitionFingerprint: String
+    let inputs: [String]
+    let usedFor: String
+    let humanOversight: String
+    let limitations: [String]
+    let personalData: [String]
+
+    var id: String { key }
+}
+
+struct AISystemsDocument: Codable, Sendable, Hashable {
+    let statement: String
+    let systems: [AISystemCard]
+}
+
+struct EvidenceIndicator: Codable, Sendable, Hashable, Identifiable {
+    let key: String
+    let label: String
+    let observed: String
+    /// supports_independence | points_the_other_way | neutral
+    let direction: String
+    let why: String
+
+    var id: String { key }
+}
+
+struct EvidencePackBody: Codable, Sendable, Hashable {
+    let disclaimer: String
+    let scopeOfWork: [String]
+    let indicators: [EvidenceIndicator]
+}
+
+struct EvidencePack: Codable, Sendable, Hashable {
+    let pack: EvidencePackBody
+    let markdown: String
 }
 
 struct Conversation: Codable, Identifiable, Sendable, Hashable {

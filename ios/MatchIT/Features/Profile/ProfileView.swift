@@ -125,6 +125,25 @@ struct ProfileView: View {
                     Text("Your profile powers the AI matching engine — richer profiles rank higher.")
                 }
 
+                Section {
+                    NavigationLink {
+                        MatchHistoryView(api: model.api)
+                    } label: {
+                        Label("Past opportunities", systemImage: "clock.arrow.circlepath")
+                    }
+                    NavigationLink {
+                        AISystemsView(api: model.api)
+                    } label: {
+                        Label("How the AI works", systemImage: "sparkles.rectangle.stack")
+                    }
+                } header: {
+                    Text("Transparency")
+                } footer: {
+                    Text(
+                        "Every closed opportunity comes with the reason, and every automated system in MatchIT is documented — including what it cannot do."
+                    )
+                }
+
                 PrivacySection(api: model.api, onDeleted: model.onSignOut)
 
                 Section {

@@ -50,7 +50,7 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   errors for the three real failure modes — not a PDF, password-protected, and
   the common one, a scanned CV with no text layer. No model call is paid for an
   unreadable file. iOS gains an Import section (PDF picker + GitHub username).
-- Certification validation against issuer APIs, video-intro transcription.
+- Certification validation against issuer APIs.
 - Identity verification flow; remaining trust score factors go evidence-based.
 
 ## Epic 4 — Matching v2
@@ -72,8 +72,14 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   *Baker v. CVS*, and it edges toward the EU AI Act's outright prohibition on
   inferring emotions in hiring. MatchIT's text-based, asynchronous interview is
   more accessible and more defensible, and is a positioning asset rather than a
-  gap. Replacement: **async voice answers transcribed to text**, scored on
-  content only, never on delivery.
+  gap.
+- ✅ **Async voice answers (Iteration 15)** — the replacement, now shipped.
+  Speak an answer instead of typing it: iOS dictates on-device and posts text,
+  and `POST /matches/{id}/interview/answer/audio` transcribes server-side for
+  clients that cannot. Audio is discarded inside the request; the transcript is
+  what is stored, scored and reported. The assessor prompt now forbids scoring
+  delivery, disfluency or transcription artefacts, so the medium cannot move a
+  score. No audio or video is ever analysed.
 - Re-interviewing when an assignment materially changes.
 
 ## Epic 6 — Contracts & payments
@@ -99,6 +105,13 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - ✅ User management: suspend/reinstate, both audited; a suspended account is
   locked out immediately on its already-issued token.
 - ✅ Audit search by action and actor.
+- ✅ Bias monitoring (Iteration 15): selection rate, adverse-impact ratio and
+  mean scores per cohort across four observable dimensions — banded experience
+  (the age proxy), country, working language and remote preference — with the
+  four-fifths rule flagged and cohorts under five decisions shown but never
+  judged. The page states what it cannot measure: MatchIT collects no protected
+  attributes, so these are proxies and a flag is a prompt to investigate rather
+  than a finding. `GET /admin/bias`, with a portal tab verified in real Chromium.
 - ✅ Portal UI (Iteration 14): a single-file vanilla-JS client served by the
   API itself at `/admin-portal` — same origin, so no CORS surface to widen, and
   it ships inside the same image. Login, funnel and AI-usage dashboards, user
@@ -115,6 +128,36 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   account must not erase the evidence of what it did.
 - ✅ GDPR data-subject tooling: Article 15/20 export and Article 17 erasure,
   refused while a contract is active (Art. 17(3)).
+- ✅ AI transparency report (Iteration 15): one signed artifact per hiring
+  decision — the weighted ranking breakdown, the interview questions with the
+  rationale for each, the per-answer scores, who decided and when, and the AI
+  systems involved at the exact prompt fingerprint in force. Both parties get
+  the identical document, including the AI's recommendation: the live interview
+  API projects per viewer so a candidate is not reading "no" mid-screening, but
+  a decision record that concealed the conclusion would not be a transparency
+  report. Issued only once the company has decided. Signed with an HMAC under a
+  key derived from the application secret, and verifiable at
+  `POST /transparency-reports/verify` **without an account** — an auditor
+  holding the document should not have to sign up here.
+- ✅ AI system registry and model cards (Iteration 15): Article 11 technical
+  documentation generated from the prompt constants and parameter tables the
+  features actually run on, each fingerprinted, so a prompt edit changes the
+  published card in the same commit. The deterministic ranking function is
+  documented alongside the language models — it decides who is ever seen.
+  `GET /ai/systems`, `docs/ai-systems.md`, and a test that fails on drift.
+- ✅ Engagement evidence pack (Iteration 15): contract, scope, clause coverage,
+  invoices, signature trail and Wet DBA independence indicators as one document,
+  each indicator saying what was observed and which way it points. It refuses to
+  draw a conclusion — misclassification is judged on the whole relationship, and
+  a checklist that implied otherwise would be worth less than nothing to whoever
+  relied on it. Signing a contract now writes the audit entry the action enum
+  had always declared.
+- ✅ Specialist feedback (Iteration 15): every closed opportunity carries the
+  reason — which components cost the most, which must-have skills were missing
+  by name, and what would change it. Derived from the persisted breakdown, so it
+  costs nothing, is always available, and cannot invent a reason that was not
+  the real one. `GET /matches/{id}/feedback`, with `GET /matches/history` and a
+  Past opportunities screen in the app.
 - SOC2 controls, anomaly detection, admin-facing audit search.
 
 ## Epic 9 — Delight
@@ -133,8 +176,7 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   rendered deterministically server-side. Shareable from the profile.
 - ✅ App Intents: "Show my MatchIT opportunities/messages" for Siri, Shortcuts
   and Spotlight.
-- Apple Intelligence integration beyond App Intents; interview-countdown
-  Live Activity for *scheduled* (video) interviews once those exist.
+- Apple Intelligence integration beyond App Intents.
 
 ## Epic 10 — Scale-out
 - ✅ Kubernetes manifests (Iteration 11): API deployment with an HPA, migrations
@@ -163,8 +205,14 @@ differentiation plan. Its three load-bearing conclusions:
 
 ## Next up (recommended)
 
-**Everything left needs the outside world.** `StripePaymentProvider` and
-`APNsSender` need real credentials; the iOS project needs one macOS
-verification pass (two targets now: app + widget extension) to make its CI job
-a merge gate; the legal drafts need counsel; the pitch needs sourced market
-figures. Every purely-code item in the original brief has shipped.
+**Everything left needs the outside world.** `StripePaymentProvider`,
+`APNsSender` and `OpenAITranscriber` need real credentials; the iOS project
+needs one macOS verification pass (three targets: app, free-provisioning app,
+widget extension) to make its CI job a merge gate; the legal drafts need
+counsel. Every purely-code item in the original brief, and every item on the
+market-research build list, has shipped.
+
+Two things worth doing when there is real traffic: publish the transparency
+report signing key so third parties can verify without calling MatchIT at all,
+and revisit the bias dimensions once cohorts are large enough for the
+four-fifths rule to mean something.

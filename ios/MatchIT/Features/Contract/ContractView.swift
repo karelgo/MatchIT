@@ -8,6 +8,8 @@ final class ContractViewModel {
     let isCompany: Bool
 
     var contract: Contract?
+    var evidencePack: EvidencePack?
+    var showingEvidencePack = false
     var hourlyRate = ""
     var hoursPerWeek = 40
     var startDate = Date()
@@ -66,6 +68,20 @@ final class ContractViewModel {
         }
     }
 
+    /// Assemble the engagement evidence pack — contract, scope, invoices, signature
+    /// trail and the independence indicators — as one document to hand to an adviser.
+    func loadEvidencePack() async {
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            evidencePack = try await api.evidencePack(matchId: matchId)
+            showingEvidencePack = evidencePack != nil
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// The API takes calendar dates, not instants — format in UTC so a late-evening
     /// local time cannot roll the start date back a day.
     static let isoDay: DateFormatter = {
@@ -99,6 +115,7 @@ struct ContractView: View {
                     statusCard(contract)
                     documentCard(contract)
                     signatureCard(contract)
+                    evidenceCard
                 } else if model.isCompany {
                     termsForm
                 } else {
@@ -115,6 +132,38 @@ struct ContractView: View {
         .navigationTitle("Contract")
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
+        .sheet(isPresented: $model.showingEvidencePack) {
+            if let pack = model.evidencePack {
+                EvidencePackSheet(pack: pack)
+            }
+        }
+    }
+
+    /// The file you want before anyone asks for it. Offered from the moment the
+    /// contract exists rather than when a letter arrives.
+    private var evidenceCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Engagement evidence pack", systemImage: "folder.badge.person.crop")
+                .font(.system(.headline, design: .rounded))
+            Text(
+                "Contract, scope, invoices, signature trail and the independence indicators, assembled as one document for your adviser."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            Button {
+                Task { await model.loadEvidencePack() }
+            } label: {
+                if model.isBusy {
+                    ProgressView()
+                } else {
+                    Label("Assemble the pack", systemImage: "doc.text.magnifyingglass")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+            .disabled(model.isBusy)
+        }
+        .padding()
+        .cardStyle()
     }
 
     private var termsForm: some View {

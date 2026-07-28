@@ -105,8 +105,29 @@ what is known.
 Specialised agents are thin orchestrations over the same primitives, each with its
 own prompt, output schema and tool access: Recruiter, Contract Generator, Project
 Estimator, Team Builder, Career Coach, Salary Advisor, Skills Validator, Fraud
-Detection. Video interviews extend the shipped interview agent by feeding it a
-transcript rather than typed answers (see roadmap).
+Detection.
+
+Spoken answers reach the shipped interview agent as text: audio is transcribed and
+discarded inside the request, and the transcript is what is stored and scored. There
+is no video path and there will not be one — see `docs/market-strategy.md` §2.2.
+Nothing in MatchIT infers emotion, affect or personality, which the EU AI Act
+prohibits outright in a workplace context.
+
+### 7. Documenting the systems
+
+`app/services/aisystems.py` is the registry of every automated system, including the
+deterministic ranking function — it decides who a company ever sees, so documenting
+only the language models would document the easy half. Each entry points at the
+actual prompt constant or parameter table the feature runs on and carries a SHA-256
+fingerprint of it, so editing a prompt changes the published card in the same commit.
+`scripts/generate_model_cards.py` writes `docs/ai-systems.md` from the registry and a
+test fails if the committed document has drifted.
+
+Per-hire, `app/services/transparency.py` assembles the signed transparency report:
+the weighted ranking breakdown, the interview questions with the rationale for each,
+the per-answer scores, who decided and when, and the fingerprints in force at the
+time. Both parties receive the identical document, and anyone holding it can verify
+it at `POST /api/v1/transparency-reports/verify` without an account.
 
 ## Cost & observability
 

@@ -97,6 +97,7 @@ struct InterviewView: View {
                 .padding(8)
                 .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 12))
                 .accessibilityLabel("Your answer")
+            dictationControls
             Button {
                 Task { await model.submitAnswer() }
             } label: {
@@ -111,6 +112,38 @@ struct InterviewView: View {
         }
         .padding()
         .cardStyle()
+    }
+
+    /// Answer by speaking. Transcription happens on-device, so no recording leaves
+    /// the phone — and nothing is ever judged on how the answer sounded.
+    private var dictationControls: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Button {
+                    model.toggleDictation()
+                } label: {
+                    Label(
+                        model.transcriber.isRecording ? "Stop" : "Speak your answer",
+                        systemImage: model.transcriber.isRecording
+                            ? "stop.circle.fill" : "mic.circle.fill"
+                    )
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(model.transcriber.isRecording ? Theme.danger : Theme.accent)
+                    .symbolEffect(.pulse, isActive: model.transcriber.isRecording)
+                }
+                Spacer()
+            }
+            Text(
+                model.transcriber.isRecording
+                    ? "Listening. Say it the way you'd explain it to a colleague."
+                    : "Speaking is transcribed on this device and scored as text — never on how you sound."
+            )
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            if let speechError = model.transcriber.errorMessage {
+                Text(speechError).font(.caption).foregroundStyle(Theme.danger)
+            }
+        }
     }
 
     private func waiting(_ interview: Interview) -> some View {
@@ -189,7 +222,16 @@ struct InterviewView: View {
             Text("Transcript").font(.subheadline.weight(.semibold))
             ForEach(interview.transcript, id: \.question) { entry in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.question).font(.caption.weight(.semibold))
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(entry.question).font(.caption.weight(.semibold))
+                        Spacer()
+                        if entry.wasSpoken {
+                            Image(systemName: "waveform")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .accessibilityLabel("Answered by voice")
+                        }
+                    }
                     Text(entry.answer).font(.caption).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

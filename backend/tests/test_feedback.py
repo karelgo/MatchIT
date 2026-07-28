@@ -179,6 +179,51 @@ async def test_interview_feedback_is_constructive_only(client, fake_chat):
     assert "No experience at this data volume" not in str(body)
 
 
+async def test_history_lists_settled_matches_and_the_inbox_does_not(client, fake_chat):
+    """The inbox is what is still open; history is what closed and why."""
+    specialist_tokens, _, match = await _rejected_match(client, fake_chat, prefix="fb-hist")
+
+    inbox = (
+        await client.get("/api/v1/matches/inbox", headers=auth_headers(specialist_tokens))
+    ).json()
+    assert inbox == []
+
+    history = (
+        await client.get("/api/v1/matches/history", headers=auth_headers(specialist_tokens))
+    ).json()
+    assert [entry["id"] for entry in history] == [match["id"]]
+    assert history[0]["company_decision"] == "rejected"
+
+
+async def test_history_excludes_matches_nobody_has_decided(client, fake_chat):
+    specialist_tokens, _ = await create_specialist(client, email="fb-open@example.com")
+    company_tokens = await create_company(client, email="fb-open-hm@example.com")
+    fake_chat.responses.append(make_requirements())
+    assignment = (
+        await client.post(
+            "/api/v1/assignments",
+            headers=auth_headers(company_tokens),
+            json={"description": DESCRIPTION},
+        )
+    ).json()
+    await client.post(
+        f"/api/v1/assignments/{assignment['id']}/matches", headers=auth_headers(company_tokens)
+    )
+
+    history = (
+        await client.get("/api/v1/matches/history", headers=auth_headers(specialist_tokens))
+    ).json()
+    assert history == []
+
+
+async def test_history_is_specialist_side_only(client, fake_chat):
+    _, company_tokens, _ = await _rejected_match(client, fake_chat, prefix="fb-hist-hm")
+    response = await client.get(
+        "/api/v1/matches/history", headers=auth_headers(company_tokens)
+    )
+    assert response.status_code == 403
+
+
 async def test_feedback_costs_no_model_call(client, fake_chat):
     """Every rejected candidate gets this, so it must never cost anything."""
     specialist_tokens, _, match = await _rejected_match(client, fake_chat, prefix="fb-free")

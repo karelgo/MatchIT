@@ -246,6 +246,27 @@ async def specialist_inbox(profile: CurrentSpecialistProfile, db: DbSession):
     return list(result)
 
 
+@router.get("/matches/history", response_model=list[MatchResponse])
+async def specialist_history(profile: CurrentSpecialistProfile, db: DbSession):
+    """Matches that are settled, newest first.
+
+    The inbox shows what is still open. This shows what closed — which is where a
+    specialist goes to find out why something did not work out, so it exists for
+    the sake of the feedback attached to each row.
+    """
+    result = await db.scalars(
+        select(Match)
+        .where(
+            Match.specialist_id == profile.id,
+            (Match.company_decision != Decision.PENDING)
+            | (Match.specialist_decision != Decision.PENDING),
+        )
+        .options(selectinload(Match.specialist), selectinload(Match.assignment))
+        .order_by(Match.created_at.desc())
+    )
+    return list(result)
+
+
 @router.post("/matches/{match_id}/decision", response_model=MatchResponse)
 async def decide_match(
     match_id: uuid.UUID,

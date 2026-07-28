@@ -180,6 +180,48 @@ async def payloads(client, fake_chat) -> dict[str, dict]:
     collected["TeamMember"] = team["seats"][0]["members"][0]
     collected["TeamRationale"] = team["proposal"]["rationale"][0]
 
+    # explainability: the report is issued once the company has decided, which the
+    # mutual match above already did
+    report = (
+        await client.get(
+            f"/api/v1/matches/{match['id']}/transparency-report",
+            headers=auth_headers(company_tokens),
+        )
+    ).json()
+    collected["TransparencyReport"] = report
+    collected["TransparencyReportBody"] = report["report"]
+    collected["ReportEngagement"] = report["report"]["engagement"]
+    collected["RankingExplanation"] = report["report"]["ranking"]
+    collected["RankingComponent"] = report["report"]["ranking"]["components"][0]
+    collected["InterviewExplanation"] = report["report"]["interview"]
+    collected["ReportedQuestion"] = report["report"]["interview"]["questions"][0]
+    collected["ReportedDecision"] = report["report"]["decisions"][0]
+    collected["ReportedSystem"] = report["report"]["ai_systems"][0]
+    collected["ReportSignature"] = report["report"]["signature"]
+
+    feedback = (
+        await client.get(
+            f"/api/v1/matches/{match['id']}/feedback", headers=auth_headers(specialist_tokens)
+        )
+    ).json()
+    collected["MatchFeedback"] = feedback
+    collected["FeedbackFactor"] = (feedback["cost_you_most"] + feedback["worked_in_your_favour"])[0]
+
+    systems = (
+        await client.get("/api/v1/ai/systems", headers=auth_headers(specialist_tokens))
+    ).json()
+    collected["AISystemsDocument"] = systems
+    collected["AISystemCard"] = systems["systems"][0]
+
+    pack = (
+        await client.get(
+            f"/api/v1/matches/{match['id']}/evidence-pack", headers=auth_headers(company_tokens)
+        )
+    ).json()
+    collected["EvidencePack"] = pack
+    collected["EvidencePackBody"] = pack["pack"]
+    collected["EvidenceIndicator"] = pack["pack"]["indicators"][0]
+
     # TokenResponse comes straight off a fresh registration
     collected["TokenResponse"] = await create_company(client, email="contract-token@example.com")
     return collected

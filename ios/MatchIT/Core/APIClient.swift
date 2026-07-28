@@ -126,6 +126,11 @@ actor APIClient {
         try await get("matches/inbox")
     }
 
+    /// Settled matches, newest first — where a specialist goes to find out why.
+    func matchHistory() async throws -> [Match] {
+        try await get("matches/history")
+    }
+
     func decide(matchId: UUID, decision: MatchDecision) async throws -> Match {
         try await post(
             "matches/\(matchId.uuidString.lowercased())/decision",
@@ -225,11 +230,54 @@ actor APIClient {
         try await post("matches/\(matchId.uuidString.lowercased())/interview", body: Empty())
     }
 
-    func answerInterview(matchId: UUID, answer: String) async throws -> Interview {
+    /// `inputMode` records whether the specialist typed or dictated. Dictation is done
+    /// on-device, so the text is all the server ever sees; the flag exists so the
+    /// transparency report can say how the answer was given.
+    func answerInterview(
+        matchId: UUID, answer: String, inputMode: String = "text"
+    ) async throws -> Interview {
         try await post(
             "matches/\(matchId.uuidString.lowercased())/interview/answer",
-            body: ["answer": answer]
+            body: ["answer": answer, "input_mode": inputMode]
         )
+    }
+
+    // MARK: - Explainability
+
+    /// The signed record of how this candidacy was handled, or nil while the company
+    /// has not decided — there is nothing to be transparent about before then.
+    func transparencyReport(matchId: UUID) async throws -> TransparencyReport? {
+        do {
+            return try await get("matches/\(matchId.uuidString.lowercased())/transparency-report")
+                as TransparencyReport
+        } catch APIError.server(let status, _) where status == 409 {
+            return nil
+        }
+    }
+
+    /// Why a match went the way it did. Specialist-side, and nil until decided.
+    func matchFeedback(matchId: UUID) async throws -> MatchFeedback? {
+        do {
+            return try await get("matches/\(matchId.uuidString.lowercased())/feedback")
+                as MatchFeedback
+        } catch APIError.server(let status, _) where status == 409 || status == 403 {
+            return nil
+        }
+    }
+
+    /// Every automated system MatchIT runs, as published documentation.
+    func aiSystems() async throws -> AISystemsDocument {
+        try await get("ai/systems")
+    }
+
+    /// The engagement evidence pack, or nil when no contract exists yet.
+    func evidencePack(matchId: UUID) async throws -> EvidencePack? {
+        do {
+            return try await get("matches/\(matchId.uuidString.lowercased())/evidence-pack")
+                as EvidencePack
+        } catch APIError.server(let status, _) where status == 404 {
+            return nil
+        }
     }
 
     // MARK: - Contracts

@@ -366,6 +366,18 @@ struct CandidateCard: View {
                     .font(.subheadline.weight(.medium))
             }
 
+            // Offered once a decision exists: the signed record of how this
+            // candidacy was handled, which is the document you want on file long
+            // before anyone asks how the shortlist was produced.
+            if match.companyDecision != .pending {
+                NavigationLink {
+                    TransparencyReportView(api: api, matchId: match.id)
+                } label: {
+                    Label("Decision record", systemImage: "doc.text.magnifyingglass")
+                        .font(.subheadline.weight(.medium))
+                }
+            }
+
             ChipFlow(items: match.specialist.skills.prefix(6).map { SkillName.display($0.name) })
 
             Button {

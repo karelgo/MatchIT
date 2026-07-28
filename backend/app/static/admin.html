@@ -54,6 +54,8 @@
     .badge { border-radius: 999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; }
     .badge.active { background: rgba(41,168,110,.15); color: var(--success); }
     .badge.suspended { background: rgba(222,66,82,.15); color: var(--danger); }
+    .badge.flagged { background: rgba(222,66,82,.15); color: var(--danger); }
+    .badge.thin { background: var(--accent-soft); color: var(--ink-soft); }
     button.action {
       border: 0; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 0.8rem;
       font-weight: 600; cursor: pointer; background: var(--accent-soft); color: var(--accent);
@@ -96,6 +98,7 @@
         <nav>
           <button id="nav-metrics" class="active">Metrics</button>
           <button id="nav-users">Users</button>
+          <button id="nav-bias">Bias</button>
           <button id="nav-audit">Audit</button>
         </nav>
         <button class="action" id="logout-button">Sign out</button>
@@ -132,6 +135,15 @@
         </div>
       </section>
 
+      <section id="view-bias" hidden>
+        <div class="card" style="margin-bottom:16px">
+          <h2>What this can and cannot see</h2>
+          <div id="bias-notes"></div>
+        </div>
+        <div id="bias-dimensions" class="grid"></div>
+        <div class="error" id="bias-error"></div>
+      </section>
+
       <section id="view-users" hidden>
         <div class="card">
           <div class="toolbar">
@@ -164,6 +176,7 @@
               <option>user_registered</option><option>login_succeeded</option><option>login_failed</option>
               <option>contract_signed</option><option>data_exported</option><option>account_deleted</option>
               <option>user_suspended</option><option>user_reinstated</option>
+              <option>transparency_report_issued</option><option>evidence_pack_issued</option>
             </select>
             <button class="action" id="audit-reload">Reload</button>
             <span class="muted" id="audit-count"></span>
@@ -251,13 +264,14 @@ function showApp() {
   switchView("metrics");
 }
 
-const views = ["metrics", "users", "audit"];
+const views = ["metrics", "bias", "users", "audit"];
 function switchView(name) {
   for (const view of views) {
     $(`view-${view}`).hidden = view !== name;
     $(`nav-${view}`).classList.toggle("active", view === name);
   }
   if (name === "metrics") loadMetrics();
+  if (name === "bias") loadBias();
   if (name === "users") loadUsers();
   if (name === "audit") loadAudit();
 }
@@ -326,6 +340,63 @@ async function loadMetrics() {
   if (entries.length === 0) usage.append(el("tr", {}, el("td", { class: "muted" }, "No AI calls yet")));
   for (const [feature, count] of entries) {
     usage.append(el("tr", {}, el("td", {}, feature), el("td", {}, el("b", {}, count))));
+  }
+}
+
+// ---- bias monitoring ----
+//
+// Continuous monitoring is what the AI Act asks of a deployer of high-risk
+// recruitment AI, so it is a page rather than a quarterly report. A flag means
+// "go and look", never "we found discrimination" — which is why the notes stating
+// the limits of the measurement render above the numbers, not below them.
+
+async function loadBias() {
+  $("bias-error").textContent = "";
+  let data;
+  try {
+    data = await api("/admin/bias");
+    $("not-admin").hidden = true;
+  } catch (error) {
+    if (error.status === 404) { $("not-admin").hidden = false; return; }
+    $("bias-error").textContent = error.message;
+    return;
+  }
+
+  const notes = $("bias-notes");
+  notes.replaceChildren();
+  for (const note of data.notes) {
+    notes.append(el("p", { class: "muted", style: "margin-bottom:8px" }, note));
+  }
+
+  const container = $("bias-dimensions");
+  container.replaceChildren();
+  for (const dimension of data.dimensions) {
+    const head = el("tr", {},
+      el("th", {}, "Cohort"), el("th", {}, "Decided"), el("th", {}, "Selected"),
+      el("th", {}, "Rate"), el("th", {}, "Impact"), el("th", {}, ""),
+    );
+    const body = el("tbody");
+    if (dimension.cohorts.length === 0) {
+      body.append(el("tr", {}, el("td", { class: "muted" }, "No matches yet")));
+    }
+    for (const cohort of dimension.cohorts) {
+      const flagged = dimension.flagged.includes(cohort.cohort);
+      body.append(el("tr", {},
+        el("td", {}, cohort.cohort),
+        el("td", {}, cohort.decided),
+        el("td", {}, cohort.selected),
+        el("td", {}, cohort.selection_rate == null ? "—" : `${(cohort.selection_rate * 100).toFixed(0)}%`),
+        el("td", {}, cohort.impact_ratio == null ? "—" : cohort.impact_ratio.toFixed(2)),
+        el("td", {}, flagged
+          ? el("span", { class: "badge flagged" }, "below 4/5")
+          : (cohort.sufficient_data ? el("span", {}) : el("span", { class: "badge thin" }, "too few"))),
+      ));
+    }
+    container.append(el("div", { class: "card" },
+      el("h2", {}, dimension.dimension.replaceAll("_", " ")),
+      el("p", { class: "muted", style: "margin:-8px 0 12px" }, dimension.description),
+      el("table", {}, el("thead", {}, head), body),
+    ));
   }
 }
 
