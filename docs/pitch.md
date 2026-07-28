@@ -1,7 +1,7 @@
 # MatchIT — Pitch Deck
 
-> Working draft. Market figures marked [research] need sourcing before this is
-> shown to an investor; every product claim is shipped and demonstrable.
+> Working draft. Market figures are sourced in `docs/market-strategy.md`; every
+> product claim is shipped and demonstrable.
 
 ---
 
@@ -16,8 +16,11 @@ the specialist, and does 90% of the recruiting between them.
 
 ## 2 · The problem
 
-- A company that needs "two Microsoft Fabric architects, starting September"
-  waits 3–8 weeks and pays 15–25% of year-one fees to get them [research].
+- EU IT staffing is a **€29.7B market (2025)**, growing ~5.2% a year, while
+  **75% of employers cannot fill advanced roles** and the EU faces a shortage of
+  up to **500,000 ICT professionals**. Demand is not the problem.
+- Freelancers report platform commissions eating **20–30%** of earnings, plus
+  ghosting, fake profiles and weak vetting.
 - The delay is not scarcity — it is process: writing the vacancy, sourcing,
   screening calls, scheduling, paperwork. Every step is a human bottleneck.
 - Existing marketplaces (HeadFirst, Malt, Upwork, LinkedIn) digitised the
@@ -77,16 +80,33 @@ One loop, minutes long, every step shipped:
 
 ## 6 · Market
 
-- EU IT freelancing & staffing: [research — order of €100B+ annually].
-- Beachhead: the Netherlands — dense freelance IT market, high English
-  proficiency, DBA regime that rewards clean contracting. Then DACH.
+- **EU IT staffing: €29.7B (2025) → ~$42.7B by 2031**, 5.2% CAGR.
+- Incumbents are large but slow: **HeadFirst €2.2B revenue**, **Malt €1B+
+  platform volume** — both built on search, filters and human intermediation.
+- Beachhead: **Dutch data & AI engineers**. The Netherlands began enforcing
+  false-self-employment rules in 2025 and can levy penalties from January 2026,
+  which makes *evidence of a genuine independent relationship* commercially
+  urgent this year — and MatchIT generates both the contract and the evidence.
+- Then adjacent skills, then Belgium and DACH. Liquidity first, reach second.
+
+## 6b · Why now
+
+Recruitment AI is **high-risk under the EU AI Act**: risk assessments, bias
+testing, human oversight, transparency and continuous monitoring, with penalties
+to **€15M or 3% of turnover**. Emotion inference in hiring is already banned.
+Meanwhile *Mobley v. Workday* was certified as a collective action and HireVue
+faces an ACLU discrimination complaint over AI video interviews.
+
+Every competitor will have to retrofit explainability. MatchIT was built with it:
+the score breakdown, the interview rationale, the audit log and the
+human-decides rule are load-bearing architecture, not a compliance layer.
 
 ---
 
 ## 7 · Traction & state
 
 - Full product loop live: intake → matching → interview → contract → escrow.
-- 140 automated tests; 34 API endpoints; iOS app; admin analytics with funnel,
+- 159 automated tests; 36 API endpoints; iOS app; admin analytics with funnel,
   conversion and time-to-contract in **hours** (because the promise is minutes,
   a metric in days would hide the truth).
 - Pre-launch: waitlist open, private beta next.

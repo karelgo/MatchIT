@@ -66,7 +66,14 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
 - ✅ Interview agent (Iteration 4): questions generated from the assignment plus a
   profile gap analysis, answered in-app, scored against a rubric, with a
   hiring-manager summary and a specialist-safe projection. Feeds the trust score.
-- In-app video interviews + transcription, reusing the same assess step.
+- ⛔ **In-app video interviews — dropped deliberately.** See
+  `docs/market-strategy.md` §2.2: AI video interviewing is the subject of the
+  ACLU's complaint against HireVue (deaf and non-white applicants) and of
+  *Baker v. CVS*, and it edges toward the EU AI Act's outright prohibition on
+  inferring emotions in hiring. MatchIT's text-based, asynchronous interview is
+  more accessible and more defensible, and is a positioning asset rather than a
+  gap. Replacement: **async voice answers transcribed to text**, scored on
+  content only, never on delivery.
 - Re-interviewing when an assignment materially changes.
 
 ## Epic 6 — Contracts & payments
@@ -139,6 +146,20 @@ assignment → ranked specialists → mutual match*. Everything else compounds o
   `us-east-1` typo would be a transfer, not a deployment detail.
 - Matching workers behind a queue, chat gateway extraction, enterprise
   white-label.
+
+## Market strategy
+
+`docs/market-strategy.md` holds the sourced competitive research and the
+differentiation plan. Its three load-bearing conclusions:
+
+1. **Compliance is the product.** EU AI Act explainability obligations are
+   architectural, and MatchIT already satisfies them. Highest-value next build:
+   an **AI Transparency Report** per hire, followed by bias monitoring in admin
+   analytics and a **DBA evidence pack** export.
+2. **Candidate dignity is the growth loop**, not a nicety — the market is
+   turning against black-box hiring AI, and MatchIT is already on the right side.
+3. **Liquidity before reach.** One vertical (Dutch data/AI engineers), supply
+   seeded first, north star = *assignment fill rate within 72 hours*.
 
 ## Next up (recommended)
 
