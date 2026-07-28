@@ -55,8 +55,41 @@ xcodegen generate
 open MatchIT.xcodeproj
 ```
 
-Point the app at a running backend via the `API_BASE_URL` setting in
-`ios/MatchIT/Support/AppConfig.swift`.
+The backend URL comes from the `MATCHIT_API_BASE_URL` build setting, resolved per
+SDK in `ios/project.yml`: `localhost` for the simulator, and a `.local` Bonjour
+hostname for device builds. The device value is machine-specific, so override it for
+your own Mac — either in `project.yml` or per build:
+
+```bash
+xcodebuild -scheme MatchIT MATCHIT_API_BASE_URL=http://your-mac.local:8000/api/v1
+```
+
+A `.local` name is used rather than a bare IP because App Transport Security exempts
+`.local` under `NSAllowsLocalNetworking`, but not private IP ranges. Remember to bind
+the backend to `0.0.0.0` — a phone cannot reach a loopback-only server.
+
+### Running on a physical device
+
+There are two schemes, because signing differs:
+
+| Scheme | Widget | Signing |
+|---|---|---|
+| `MatchIT` | yes | needs a **paid** Apple Developer Program membership |
+| `MatchITFree` | no | works with a free Apple ID |
+
+`MatchIT` shares an App Group between the app and its widget extension, and free
+"personal team" provisioning cannot grant App Groups. `MatchITFree` builds the same
+app without the widget target or that entitlement; `SharedStore` degrades to a no-op
+when the App Group container is missing, so nothing else changes. Free provisioning
+also expires every 7 days and needs a globally unique bundle id:
+
+```bash
+xcodebuild -scheme MatchITFree MATCHIT_FREE_BUNDLE_ID=com.yourname.matchit
+```
+
+On first launch the device refuses an app signed by a personal team until you trust
+it under Settings → General → VPN & Device Management. iOS will also prompt for Local
+Network access; declining it stops the app reaching your Mac.
 
 ## What is verified, and what is not
 

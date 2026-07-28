@@ -57,6 +57,55 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
 
+  # Same app, minus the widget extension and the App Group the two share.
+  #
+  # Free "personal team" provisioning cannot grant App Groups, so the MatchIT target
+  # above cannot be signed without a paid Apple Developer Program membership. This
+  # target is the only configuration that installs on a device with just an Apple ID.
+  # The trade-off is no home-screen widget: SharedStore degrades to a no-op when the
+  # App Group container is unavailable, so the app itself is unaffected.
+  #
+  # Free provisioning also needs a globally unique bundle id and re-signing every
+  # 7 days. Override the id for your own account, e.g.
+  #   xcodebuild -scheme MatchITFree MATCHIT_FREE_BUNDLE_ID=com.yourname.matchit
+  MatchITFree:
+    type: application
+    platform: iOS
+    sources:
+      # The MatchIT target's generated Info.plist lives in this tree. It is not this
+      # target's own info file, so it would be copied in as a resource and collide with
+      # the processed one.
+      - path: MatchIT
+        excludes:
+          - Support/Info.plist
+      - Shared
+    info:
+      # Deliberately outside MatchIT/, which both app targets glob as sources: a plist
+      # in there is copied as a resource as well as processed, and the two collide.
+      path: Config/Info-Free.plist
+      properties:
+        CFBundleDisplayName: MatchIT
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Live Activities need only this key, not an entitlement, so they survive here.
+        NSSupportsLiveActivities: true
+        NSSpeechRecognitionUsageDescription: >-
+          MatchIT transcribes your voice so you can describe your hiring problem
+          by speaking instead of typing.
+        NSMicrophoneUsageDescription: >-
+          The microphone is used only while you dictate to the AI concierge.
+        APIBaseURL: $(MATCHIT_API_BASE_URL)
+        NSLocalNetworkUsageDescription: >-
+          MatchIT connects to the MatchIT backend running on your local network.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        MATCHIT_FREE_BUNDLE_ID: com.matchit.app.free
+        PRODUCT_BUNDLE_IDENTIFIER: $(MATCHIT_FREE_BUNDLE_ID)
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+
   MatchITWidgets:
     type: app-extension
     platform: iOS
